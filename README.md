@@ -67,6 +67,16 @@ That folder needs a `campaign.json` inventory mapping its current files. Editabl
 
 OpenAI is the demo default; Anthropic is also supported. Set the provider and model in the config, with its API key only in the server environment. **Google Drive is a planned connector.** Selecting it currently returns a clear error. [Drive design](docs/google-drive-design.md).
 
+### Anthropic example
+
+To use the Fable 5.1 model exercised in the hackathon demo, replace the `ai` object in `launch-control.config.json` with:
+
+```json
+{"provider": "anthropic", "model": "claude-fable-5-1"}
+```
+
+Set `ANTHROPIC_API_KEY` in the server environment and restart with `npm start`. The model must be available to your account. Unset `LAUNCH_AI_PROVIDER` and `ANTHROPIC_MODEL` if they should no longer override the config. Never put API keys in config or source control.
+
 ## Draft → review → ready to publish
 
 1. Open **Campaign Control**, choose **Pro500**, and let it check the existing inventory. The dashboard shows campaign readiness and counts; **Browse assets** opens all 104 assets.
@@ -94,14 +104,17 @@ The challenge exceeds find-and-replace: removing sharing can invalidate a promis
 
 ## Verified runs and boundaries
 
-Live runs at the hackathon used OpenAI `gpt-6.1-sol`:
+Observed live runs at the October 3, 2026 hackathon:
 
-| Scope | Processing time | Outcome |
-| --- | ---: | --- |
-| Four-asset walkthrough | 34.2 seconds | Ready for human review |
-| Full campaign: 104 assets, 11 channels | 4 minutes 26.9 seconds | All automated checks passed; human approval produced the complete package |
+| Provider / model | Scope | Processing time | Observed API cost (USD) | Outcome |
+| --- | --- | ---: | ---: | --- |
+| OpenAI · `gpt-6.1-sol` | Four-asset walkthrough | 33.1 seconds | ~$0.04 | Ready for human review |
+| Anthropic · Fable 5.1 (`claude-fable-5-1`) | Four-asset walkthrough | 81.3 seconds | ~$0.46 | Ready for human review |
+| OpenAI · `gpt-6.1-sol` | Full campaign: 104 assets, 11 channels | 4 minutes 26.9 seconds | Not separately measured | All automated checks passed; human approval produced the complete package |
 
-These are local observations, not performance guarantees or measured business savings. Processing time excludes human review and packaging. The full run used 27 model requests with no retries. Its private run history and approved outputs are not distributed as precomputed results. Anthropic was also exercised live on the four-asset workflow. Model latency and results vary.
+Processing time includes brief interpretation, AI revisions, rendering and checks; it excludes human review and packaging. A later OpenAI four-asset run completed in 34.2 seconds; its cost was not separately captured. The full run used 27 model requests with no retries.
+
+Costs are operator-reported billing observations, not instrumented per-run charges. The Fable estimate reflects the billing increase during that demo and assumes no unrelated usage. These individual runs are not a controlled model comparison, a performance guarantee or measured business savings. Model latency, output and cost vary. Private run history and approved outputs are not distributed as precomputed results.
 
 Run `npm test` for the automated checks. They use isolated synthetic providers and temporary campaigns, not paid API calls. The live asset-specific feedback stage still needs a separate model rehearsal; its software contracts are covered by automated tests.
 
