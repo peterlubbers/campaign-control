@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAR-006",
+  "channel": "partners",
+  "sourceSha256": "ab9b8eeb65f4cd3ccbfc049786378124cfa9e172f230988c3ee1fff3fbcdc603",
+  "handoffState": "unpublished",
+  "fields": {
+    "listing_title": "Partner checklist for launch copy | Fictitious AI",
+    "partner_description": "Help partner editors review launch descriptions and metadata consistently.",
+    "distribution_instruction": "Unpublished fictional partner material. A human must choose the recipient or channel and approve distribution."
+  }
+}

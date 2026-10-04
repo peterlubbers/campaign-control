@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-007",
+  "channel": "sales",
+  "sourceSha256": "b597160cb590bd83de126a1f2ada8736306a7daeb6b3ded5e3095da4a22e5daf",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Cohort comparison conversation card | Fictitious AI",
+    "audience": "Product analysts and analytical evaluators",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

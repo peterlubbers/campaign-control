@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML011",
+  "channel": "email",
+  "sourceSha256": "ac2208cb6d1297ba293ea97799e08e7cb67bedf9305444e9bd05f031d7564aab",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Your final analytical review of Fictitious AI Pro500",
+    "preheader": "Keep the definitions and limits clear: $500/month, sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

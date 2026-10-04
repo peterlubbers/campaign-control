@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML005",
+  "channel": "email",
+  "sourceSha256": "c90957611f59409fad7e25d96cbfa75597dc85a3749767a7bf7dc0f744474348",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "An analyst's checklist for evaluating Fictitious AI",
+    "preheader": "Examine definitions and interpretation with Pro500, $500/month and sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB006",
+  "channel": "website",
+  "sourceSha256": "70c5b4267a455d554f705f89d65a8c93a8c6832858ff1e9138b5144be7d6370a",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Define and examine activation | Fictitious AI",
+    "meta_description": "Use product analytics to examine an activation hypothesis. Pro500 offers sharing for up to five teammates at $500/month.",
+    "url_path": "/use-cases/activation"
+  }
+}

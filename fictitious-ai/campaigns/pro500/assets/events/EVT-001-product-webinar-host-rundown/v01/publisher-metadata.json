@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EVT-001",
+  "channel": "events",
+  "sourceSha256": "e1a8c2f03bd8ea0aa6056df882969b6186662bb7600ab32e70b3532b843f5bb5",
+  "handoffState": "unpublished",
+  "fields": {
+    "event_title": "One product question, a reviewable answer with Fictitious AI",
+    "event_format": "Hosted product webinar; schedule pending",
+    "audience": "Product managers evaluating an analytics workflow",
+    "registration_instruction": "Human event owner supplies the registration destination and confirmed schedule. No invitation has been sent."
+  }
+}

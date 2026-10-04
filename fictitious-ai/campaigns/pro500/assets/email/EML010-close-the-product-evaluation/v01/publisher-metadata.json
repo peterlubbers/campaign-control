@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML010",
+  "channel": "email",
+  "sourceSha256": "2db4f31ceb2c09ec9614cdb357aecfe8f8dd6ac9dce906ca5486cf39c63ea1b3",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Is Pro500 the right fit for your product review workflow?",
+    "preheader": "Confirm the $500/month offer and sharing for up to five teammates before deciding.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

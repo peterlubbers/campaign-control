@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EVT-002",
+  "channel": "events",
+  "sourceSha256": "cc80c477017b5af17c48c094831d44ebeb980d9c137096e6d1b9d5167461a355",
+  "handoffState": "unpublished",
+  "fields": {
+    "event_title": "Investigate a retention pattern with Fictitious AI",
+    "event_format": "Facilitated hands-on workshop; schedule pending",
+    "audience": "Analysts and product practitioners learning cohort review",
+    "registration_instruction": "The workshop owner confirms attendance, access and schedule before distribution. Use fictional events only; no attendee data is included."
+  }
+}

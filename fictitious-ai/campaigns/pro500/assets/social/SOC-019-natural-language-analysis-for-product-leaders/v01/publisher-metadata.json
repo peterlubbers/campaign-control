@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SOC-019",
+  "channel": "social",
+  "sourceSha256": "317cda61c598bc0fc98e6fa563dc9d97ddc12e015a62d0fffd9150a639509ab7",
+  "handoffState": "unpublished",
+  "fields": {
+    "platform": "LinkedIn",
+    "post_caption": "Plain-language questions can begin an analysis; they do not remove the need to check its interpretation. Use Fictitious AI to explore events, funnels, retention, and cohorts. Pro500 is $500/month, with sharing for up to five teammates.",
+    "alt_text": "Fictitious AI text card headed Ask plainly. Review carefully. The card says: Ask natural-language questions about product behavior in Fictitious AI. Human review remains part of the interpretation. Pro500 is $500/month. Call to action: Explore a product question.",
+    "hashtags": "#FictitiousAI #ProductAnalytics",
+    "publication_instruction": "Unpublished fictional campaign. Hold for human approval; publisher confirms final destination and schedule."
+  }
+}

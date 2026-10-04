@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-002",
+  "channel": "sales",
+  "sourceSha256": "e0616233fcbf1d6bd756bc09fd176a6f3a47658391dcb149c52ae3a98edd6326",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Product analytics one-page brief | Fictitious AI",
+    "audience": "First-time product analytics evaluators",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

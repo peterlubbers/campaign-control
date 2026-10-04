@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB005",
+  "channel": "website",
+  "sourceSha256": "1042d3489f39d1c5c9f71a8ed5b32212de83fe77da3484c5b441317797c57ef3",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Onboarding funnel analysis | Fictitious AI Pro500",
+    "meta_description": "Examine the journey from signup to a meaningful first task. Pro500 is $500/month with sharing for up to five teammates.",
+    "url_path": "/use-cases/onboarding"
+  }
+}

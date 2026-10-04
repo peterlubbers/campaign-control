@@ -1,0 +1,75 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24,
+  "assetId": "VID-004",
+  "brand": "Fictitious AI",
+  "categoryLabel": "PRODUCT ANALYTICS",
+  "style": {
+    "colors": {
+      "graphite": "#15212D",
+      "steel": "#273A4B",
+      "silver": "#CBD5E1",
+      "white": "#F2F6FA",
+      "muted": "#A7B7C9",
+      "blue": "#00B2FF"
+    },
+    "regularFont": "Arial",
+    "boldFont": "Arial-BoldMT",
+    "logo": {
+      "viewBox": [
+        0,
+        0,
+        40,
+        40
+      ],
+      "rects": [
+        {
+          "x": 0,
+          "y": 24,
+          "width": 10,
+          "height": 16
+        },
+        {
+          "x": 15,
+          "y": 12,
+          "width": 10,
+          "height": 28
+        },
+        {
+          "x": 30,
+          "y": 12,
+          "width": 10,
+          "height": 28
+        },
+        {
+          "x": 30,
+          "y": 0,
+          "width": 10,
+          "height": 8
+        }
+      ]
+    },
+    "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1"
+  },
+  "scenes": [
+    {
+      "start": 0,
+      "end": 6,
+      "headline": "What counts as coming back?",
+      "body": "Choose the return event and time window before interpreting retention."
+    },
+    {
+      "start": 6,
+      "end": 12,
+      "headline": "Compare the question with the evidence",
+      "body": "Explore retention in Fictitious AI and note what the analysis cannot explain."
+    },
+    {
+      "start": 12,
+      "end": 18,
+      "headline": "Keep reviewers in the same context",
+      "body": "Pro500 includes sharing for up to five teammates at $500/month."
+    }
+  ]
+}

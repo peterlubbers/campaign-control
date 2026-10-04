@@ -1,0 +1,337 @@
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const active = new Set(['interpreting','proposing','rendering','checking']);
+const channels = {website:'Website',email:'Email',social:'Social',paid:'Paid media',video:'Video',sales:'Sales',support:'Support',partners:'Partners','in-product':'In-product',events:'Events',press:'PR / communications'};
+const channel = key => channels[key] || key;
+const assetType = asset => asset.kind === 'video' ? 'Motion asset · MP4' : asset.metadata?.presentation ? 'Google Slides presentation' : asset.metadata?.outputFormat === 'pdf' ? 'Sales battlecard · PDF' : asset.channel === 'sales' ? 'Sales collateral' : asset.kind === 'page' ? 'Web page' : asset.kind === 'graphic' ? `${channel(asset.channel)} graphic` : `${channel(asset.channel)} copy`;
+const revisionDrafts = new Map();
+let revisionOpenKey = null;
+let resetTarget = null, resolutionTarget = null;
+let state, view = 'home', selectedId, requestBusy = false, refreshing = false, reviewSignature = '', librarySignature = '', toastTimer, lastProgress = '', pendingRun = false, demoMode = false;
+const defaultBrief = $('brief').value;
+const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
+function safeURL(value) {try {const url = new URL(value,location.origin); return url.origin === location.origin && url.pathname.startsWith('/artifacts/') ? url.pathname : '';} catch {return '';}}
+function toast(message) {clearTimeout(toastTimer); $('message').textContent = message; $('message').hidden = false; toastTimer = setTimeout(() => {$('message').hidden = true;},10000);}
+async function api(route, data) {
+  const response = await fetch(route, data === undefined ? {cache:'no-store'} : {method:'POST',headers:{'Content-Type':'application/json','X-Launch-Control-Token':state?.csrfToken || ''},body:JSON.stringify(data)});
+  const result = await response.json(); if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`); return result;
+}
+function setView(next, focus = true) {
+  if (view === next) return;
+  view = next;
+  for (const section of document.querySelectorAll('main>.view')) section.hidden = section.id !== `${next}-view`;
+  const home = next === 'home';
+  $('brand-theme').href = home ? '/brand/default.css' : '/brand.css';
+  $('product-mark').hidden = !home;
+  $('header-logo').hidden = home;
+  $('header-name').textContent = home ? 'Campaign Control' : state?.branding.company || 'Campaign Control';
+  $('location-label').textContent = home ? 'Campaign workspace' : 'Campaign Control / ' + (state?.campaign.facts.product || 'Campaign');
+  document.title = home ? 'Campaign Control' : `${state?.campaign.facts.product || 'Campaign'} · Campaign Control`;
+  if (state) updateMode();
+  if (focus) {window.scrollTo({top:0,behavior:'instant'}); $('main').focus({preventScroll:true});}
+}
+function representativeIds() {
+  const preferred = ['WEB002','VID-001','SOC-001','SAL-004'].filter(id => state.assets.some(a => a.id === id));
+  for (const type of ['website','video','social','sales']) {if (preferred.length >= 4) break; const a = state.assets.find(a => a.channel === type && !preferred.includes(a.id)); if (a) preferred.push(a.id);}
+  for (const a of state.assets) {if (preferred.length >= 4) break; if (!preferred.includes(a.id)) preferred.push(a.id);}
+  return preferred;
+}
+function scopeAssets() {return state.run?.scope ? state.assets.filter(a => state.run.scope.assetIds.includes(a.id)) : state.assets;}
+function assetCleared(asset) {return asset.status === 'checked' || asset.resolution?.overridden;}
+function reviewIds() {return state.run?.reviewAssetIds || scopeAssets().slice(0,4).map(a => a.id);}
+function isBusy() {return requestBusy || state?.busy || active.has(state?.run?.status);}
+function setBriefExpanded(expanded, focus = false) {
+  $('update-editor').hidden = !expanded;
+  const button = $('toggle-update');
+  button.setAttribute('aria-expanded', String(expanded));
+  button.textContent = expanded ? 'Hide update' : 'Make an update';
+  button.className = expanded ? 'secondary' : 'primary';
+  $('brief-length').textContent = `${$('brief').value.length} / 4,000`;
+  if (focus) {
+    (expanded ? $('brief') : button).focus({preventScroll:true});
+    if (expanded) $('campaign-updates').scrollIntoView({block:'start',behavior:'instant'});
+  }
+}
+function updateMode() {
+  const locked = isBusy() || !['home','dashboard'].includes(view);
+  const runScope = state.run?.scope;
+  const showingRun = !pendingRun && runScope && (state.busy || active.has(state.run.status) || !['home','dashboard','loading'].includes(view));
+  const enabled = showingRun ? (runScope.initialAssetIds || runScope.assetIds).length < runScope.inventoryCount : demoMode;
+  $('demo-mode').checked = enabled;
+  $('demo-mode').disabled = locked;
+  const assets = showingRun ? scopeAssets() : enabled ? state.assets.filter(a => representativeIds().includes(a.id)) : state.assets;
+  $('scope-heading').textContent = enabled ? 'Demo update.' : 'Full campaign.';
+  $('full-scope-count').textContent = `${assets.length} assets · ${new Set(assets.map(a => a.channel)).size} channels`;
+  const excluded = state.assets.length - assets.length;
+  $('scope-description').textContent = enabled ? `Only these ${assets.length} assets and their publisher files will be updated and checked. ${excluded} other assets stay unchanged.` : 'Every asset and its publisher metadata will be processed and checked.';
+}
+function dashboard() {
+  const {campaign,evidence,provider,run} = state;
+  $('reset-demo-button').hidden = !state.capabilities?.demoReset;
+  $('reset-demo-button').disabled = isBusy();
+  $('confirm-reset-demo').disabled = isBusy();
+  $('campaign-company').textContent = state.branding.company;
+  $('campaign-name').textContent = campaign.facts.product;
+  $('campaign-counts').textContent = `${evidence.registered} assets / ${evidence.channelCount} channels`;
+  $('campaign-button').disabled = false;
+  $('workspace-eyebrow').textContent = `${state.branding.company} / CAMPAIGN`;
+  $('dashboard-heading').textContent = campaign.facts.product;
+  $('asset-count').textContent = evidence.registered;
+  $('channel-count').textContent = evidence.channelCount;
+  updateMode();
+  const readiness = state.launchReadiness || {label:'Checking readiness',tone:'warning'};
+  for (const id of ['readiness','campaign-readiness']) {
+    $(id).className = `status-pill launch-readiness ${readiness.tone}`;
+    if ($(id).textContent !== readiness.label) $(id).textContent = readiness.label;
+  }
+  $('campaign-description').textContent = run ? `${run.change?.product || campaign.facts.product} · ${run.version}` : 'Product analytics launch · Original campaign';
+  $('model-name').textContent = provider.model || 'Not selected';
+  $('provider-status').textContent = `${provider.provider === 'openai' ? 'OpenAI' : provider.provider} · ${provider.configured ? (provider.connected ? 'Live access verified.' : 'Access checked when you run.') : provider.message}`;
+  $('update-button').disabled = isBusy() || !provider.configured || !$('brief').value.trim();
+  $('toggle-update').disabled = isBusy();
+  $('update-button').title = !provider.configured ? provider.message : '';
+  $('brief').disabled = isBusy();
+  const banner = $('resume-banner');
+  banner.hidden = !run || run.status === 'draft';
+  if (run) banner.innerHTML = `<strong>${esc(run.version)}</strong> · ${esc(state.workspace.status)}. ${esc(state.workspace.driftMessage || 'Earlier work is preserved. A new update creates another version.')} <button class="text-button" id="resume-button">${active.has(run.status) || state.busy ? 'View progress' : 'Open version'} →</button>`;
+  $('resume-button')?.addEventListener('click',() => routeRun());
+  const evidenceData = state.marketEvidence;
+  $('market-context').textContent = evidenceData ? `${evidenceData.prompts.length} observed buyer questions from Profound’s ${evidenceData.dataset.brand} dataset inform relevant claim checks. These are reference observations, not Fictitious AI performance results or a live Profound API connection.` : 'No external market evidence is attached. The campaign facts and your brief guide the revision.';
+}
+function formatDuration(seconds) {
+  if (seconds == null || !Number.isFinite(seconds)) return '—';
+  const value = Math.max(0, Math.round(seconds));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2,'0')}`;
+}
+function processingReceipt() {
+  const processing = state.processing;
+  if (processing?.elapsedSeconds == null) return 'Processing time not recorded.';
+  return `Processing time: ${formatDuration(processing.elapsedSeconds)} · ${processing.total} assets included · Human review time excluded`;
+}
+function renderProgress() {
+  const run = state.run;
+  const stages = [['interpreting','Interpreting your brief'],['proposing','Revising copy and publisher metadata'],['rendering','Producing the new asset files'],['checking','Checking the complete version']];
+  const current = stages.findIndex(([key]) => key === run?.status);
+  $('progress-eyebrow').textContent = run ? `${run.version} / NEW VERSION` : 'STARTING NEW VERSION';
+  $('progress-scope').textContent = run?.scope ? `${run.scope.inventoryCount} assets inventoried · ${run.scope.assetIds.length} included in this release` : 'Checking the campaign and creating a new version.';
+  $('progress-steps').innerHTML = stages.map(([key,label],i) => `<li class="${i < current ? 'done' : i === current ? 'active' : ''}"${i===current?' aria-current="step"':''}><span aria-hidden="true">${i < current ? '✓' : String(i+1).padStart(2,'0')}</span><span>${label}${i < current ? '<span class="sr-only"> — complete</span>' : ''}</span></li>`).join('');
+  const message = run?.progress?.message || 'Opening source files and reserving a new version…';
+  if (message !== lastProgress) {$('progress-message').textContent = message; lastProgress = message;}
+  const processing = state.processing;
+  const total = processing?.total || state.assets.length;
+  $('proposals-count').textContent = `${processing?.proposed || 0} / ${total}`;
+  $('outputs-count').textContent = `${processing?.produced || 0} / ${total}`;
+  $('audits-count').textContent = `${processing?.audited || 0} / ${total}`;
+  $('elapsed').textContent = formatDuration(processing?.elapsedSeconds);
+}
+function fileLabel(file) {return ({'publisher-metadata':'Publisher metadata','youtube-metadata':'YouTube metadata',captions:'Captions',thumbnail:'Thumbnail','native-video':'Motion asset (MP4)','native-presentation-reference':'Google Slides reference','publishable-copy':'Publish copy','pdf-document':'PDF document',graphic:'Graphic'})[file.role] || file.path;}
+function preview(asset, side) {
+  const files = asset[`${side}Files`] || [];
+  const primary = files.find(f => f.role === 'native-video') || files.find(f => f.role === 'graphic') || files.find(f => f.role === 'document-preview') || files.find(f => f.role === 'review-preview') || asset[`${side}Preview`] || files[0];
+  const document = files.find(f => f.role === 'pdf-document');
+  const openURL = safeURL(document?.url || primary?.url);
+  const url = safeURL(primary?.url); const mime = primary?.mime || ''; const title = side === 'source' ? 'Before · preserved' : 'After · new version';
+  let media;
+  if (url && mime.startsWith('video/')) {const captions = files.find(f => f.role === 'captions');media = `<video controls playsinline preload="metadata" aria-label="${esc(title)}: ${esc(asset.title)}"><source src="${esc(url)}" type="${esc(mime)}">${captions ? `<track kind="captions" src="${esc(safeURL(captions.url))}" srclang="en" label="English">` : ''}</video>`;}
+  else if (url && mime.startsWith('image/')) media = `<img src="${esc(url)}" alt="${esc(title)}: ${esc(asset.title)}" loading="lazy">`;
+  else if (url && mime.startsWith('text/html')) media = `<iframe src="${esc(url)}" title="${esc(title)}: ${esc(asset.title)}" sandbox loading="lazy"></iframe>`;
+  else media = `<pre>${esc(asset[`${side}Text`] || 'No preview is available for this asset yet.')}</pre>`;
+  const companions = files.filter(f => ['publisher-metadata','youtube-metadata','captions','native-video','thumbnail','publishable-copy','graphic','native-presentation-reference','pdf-document'].includes(f.role));
+  return `<div class="preview-column"><div class="preview-label"><span>${esc(title)}</span>${openURL?`<a href="${esc(openURL)}" target="_blank" rel="noopener">${document ? 'Open PDF' : 'Open'} ↗</a>`:''}</div><div class="preview-media">${media}</div><div class="file-links">${companions.map(f=>`<a href="${esc(safeURL(f.url))}" target="_blank" rel="noopener">${esc(fileLabel(f))}${f.path.endsWith('.json')?' (JSON)':''} ↗</a>`).join('')}</div></div>`;
+}
+function metadata(text) {const video = String(text||'').split(/^## YouTube title\s*$/mi)[1]; if(video) return '## YouTube title\n'+video.trim(); const section = String(text||'').split(/^## Publisher metadata\s*$/mi)[1]; return section ? section.split(/^## /m)[0].trim() : 'No publisher metadata section.';}
+function renderReview(force = false) {
+  const run = state.run, assets = scopeAssets(), ids = reviewIds();
+  if (!assets.some(asset=>asset.id===selectedId)) selectedId = ids[0];
+  const reviewedCount = ids.filter(id => run.reviews?.[id]?.candidateHash === run.candidateHash).length;
+  // A finished browser request must unlock the toolbar even when candidate data is unchanged.
+  const signature = JSON.stringify([run.id,run.status,run.candidateHash,run.reviews,selectedId,isBusy(),state.capabilities?.assetRevision,state.capabilities?.assetResolution]);
+  $('review-timing').textContent = processingReceipt();
+  $('review-eyebrow').textContent = `${run.version} / HUMAN REVIEW`;
+  $('review-summary').textContent = `${assets.length} assets included · ${assets.filter(a=>a.checks?.some(c=>c.name==='Independent semantic audit')).length} AI audited · ${assets.filter(a=>a.status==='checked').length} passed checks · ${assets.filter(a=>a.resolution?.overridden).length} human override${assets.filter(a=>a.resolution?.overridden).length===1?'':'s'} · ${assets.filter(a=>!assetCleared(a)).length} need attention`;
+  $('review-sample-description').textContent = ids.length < assets.length ? `These ${ids.length} assets are representative examples. All ${assets.length} included assets receive automated checks; final approval covers the entire included set.` : `These are all ${assets.length} assets included in this version. Final approval covers them and their publisher files.`;
+  $('review-all-button').textContent = `Browse all ${assets.length} included assets`;
+  $('review-status').textContent = `${reviewedCount} of ${ids.length} representative assets reviewed`;
+  $('review-status').className = `status-pill ${reviewedCount === ids.length ? 'ready' : 'warning'}`;
+  const facts = run.change;
+  $('interpretation').innerHTML = facts ? `<span class="fact-chip"><small>Product</small>${esc(facts.product)}</span><span class="fact-chip"><small>Monthly price</small>${esc(money(facts.monthlyPrice))}</span><span class="fact-chip"><small>Sharing</small>${facts.sharing?`Up to ${esc(facts.maxTeammates)} teammates`:'Removed'}</span><p>AI interpretation: ${esc(run.interpretation || 'Confirm these facts before approval.')}</p>` : '';
+  const blocked = assets.filter(a=>!assetCleared(a) && a.required);
+  if (blocked.length) $('review-status').className = 'status-pill warning';
+  $('review-alert').hidden = !blocked.length && !run.error && run.status !== 'rejected';
+  const alertHTML = blocked.length ? `<strong>Approval blocked: ${blocked.length} required asset${blocked.length===1?' needs':'s need'} attention.</strong> ${reviewedCount===ids.length?'Your representative reviews are complete. ':''}<button type="button" id="show-approval-blockers" class="text-button">Review ${blocked.length===1?'the issue':'the issues'} below ↓</button>` : esc(run.error || 'Changes were requested. Correct a candidate or start a new version with an amended brief.');
+  if ($('review-alert').innerHTML !== alertHTML) {
+    $('review-alert').innerHTML = alertHTML;
+    $('show-approval-blockers')?.addEventListener('click',()=>{$('approval-blockers').scrollIntoView({block:'center',behavior:'instant'});$('approval-blockers-heading').focus({preventScroll:true});});
+  }
+  const excluded = state.assets.length - assets.length;
+  $('approval-scope').textContent = `Approval covers ${assets.length} included assets and their publisher companions. ${excluded ? `${excluded} ${excluded === 1 ? 'asset is' : 'assets are'} outside this release. ` : ''}${ids.length} representative assets require your review; every included required asset needs passed checks or a recorded human override of its AI finding.`;
+  $('approve-button').disabled = isBusy() || blocked.length>0 || !run.candidateHash || !['review','rejected','approved'].includes(run.status) || reviewedCount !== ids.length || !$('confirm-facts').checked || !$('reviewer').value.trim();
+  $('approve-button').textContent = run.status === 'approved' ? 'Prepare approved release →' : 'Approve & prepare release →';
+  const remainingReviews=ids.length-reviewedCount;
+  $('approval-readiness').textContent = isBusy() ? 'Waiting for the current checks to finish.' : blocked.length ? `Approval blocked by ${blocked.length} required asset${blocked.length===1?'':'s'}. Open each issue to resolve it.` : remainingReviews ? `Review ${remainingReviews} more representative asset${remainingReviews===1?'':'s'} before approval.` : !$('confirm-facts').checked ? 'Confirm the product facts below before approval.' : !$('reviewer').value.trim() ? 'Enter your name to record approval.' : 'Checks, human resolutions and representative reviews are complete.';
+  $('approval-readiness').className = blocked.length ? 'approval-readiness danger' : 'approval-readiness muted';
+  $('reject-button').disabled = isBusy() || !run.candidateHash || run.status === 'approved';
+  if (!force && signature === reviewSignature) return; reviewSignature = signature;
+  $('approval-blockers').hidden = !blocked.length;
+  $('approval-blockers').innerHTML = blocked.length ? `<h3 id="approval-blockers-heading" tabindex="-1">${blocked.length} ${blocked.length===1?'asset needs':'assets need'} a decision</h3><p class="muted">Revise the asset, exclude it from this launch, or explicitly override an eligible AI finding.</p><ul class="approval-blocker-list">${blocked.map(a=>{const reason=a.issues?.find(i=>i.severity==='error')?.message || a.checks?.find(c=>c.status!=='pass')?.message || 'Required checks have not completed.';return `<li><div><div class="asset-identity"><span class="asset-id">${esc(a.id)}</span><span class="asset-type">${esc(assetType(a))}</span></div><strong>${esc(a.title)}</strong><p>${esc(reason)}</p></div><button type="button" class="secondary" data-blocked-asset="${esc(a.id)}" aria-label="Review issue for ${esc(a.id)}">Review issue</button></li>`;}).join('')}</ul>` : '';
+  $('review-cards').innerHTML = ids.map(id => {const a=state.assets.find(a=>a.id===id), reviewed=run.reviews?.[id]?.candidateHash === run.candidateHash;return `<button class="review-card ${reviewed?'reviewed':''}" data-review="${esc(id)}" aria-pressed="${selectedId===id}"><span class="asset-id">${esc(id)}</span><span class="asset-type">${esc(assetType(a))}</span><strong>${esc(a.title)}</strong><small>${reviewed?'✓ Reviewed':assetCleared(a)?'○ Awaiting your review':'! Needs attention'}</small></button>`;}).join('');
+  renderResolutions();
+  const asset = state.assets.find(a=>a.id===selectedId); if (!asset) return;
+  const reviewed = run.reviews?.[asset.id]?.candidateHash === run.candidateHash;
+  const revisionKey = `${run.id}:${asset.id}`, lastRevision = run.assetRevisions?.filter(r=>r.assetId===asset.id).at(-1);
+  $('asset-toolbar').innerHTML = `<div class="asset-description"><div class="asset-identity"><span class="asset-id">${esc(asset.id)}</span><span class="asset-type">${esc(assetType(asset))}</span><span class="status-pill ${asset.status==='checked'?'ready':'warning'}">${asset.resolution?.overridden?'Human override':asset.status==='checked'?'Checks passed':'Needs attention'}</span></div><h2 id="asset-heading" tabindex="-1">${esc(asset.title)}</h2><p class="muted">${esc(asset.reason || 'Review the complete asset and its metadata.')}</p>${asset.kind==='video'?'<p class="motion-note">Silent motion graphics with on-screen copy.</p>':''}${asset.metadata?.presentation && asset.status!=='checked'?'<p class="motion-note">This presentation needs a verified Google Slides revision. Copy edits alone cannot complete its native output.</p>':''}</div><div class="asset-actions"><button id="request-revision" class="secondary" aria-expanded="${revisionOpenKey===revisionKey}" aria-controls="asset-revision-form"${isBusy()||!asset.candidateText?' disabled':''}>Request revision</button>${resolutionActions(asset)}<button id="mark-reviewed" class="${reviewed?'secondary':'primary'}"${ids.includes(asset.id)?'':' hidden'}${reviewed||!assetCleared(asset)||isBusy()||run.status==='approved'?' disabled':''}>${reviewed?'✓ Reviewed':'Mark reviewed →'}</button></div>`;
+  $('asset-content').innerHTML = `<div class="preview-grid">${preview(asset,'source')}${preview(asset,'candidate')}</div><div class="review-extra"><details><summary>Compare publisher metadata</summary><div class="preview-grid"><div class="preview-column"><p>Before</p><pre>${esc(metadata(asset.sourceText))}</pre></div><div class="preview-column"><p>After</p><pre>${esc(metadata(asset.candidateText))}</pre></div></div></details><details${asset.status!=='checked'?' open':''}><summary>Quality checks and findings</summary><ul class="check-list">${(asset.issues||[]).map(i=>`<li class="${i.severity==='error'?'danger':'warning'}"><div><strong>${asset.resolution?.overridden && i.severity==='error'?'AI FINDING · HUMAN OVERRIDE':esc(i.severity.toUpperCase())}</strong><p>${esc(i.message)}</p><p>${esc(i.evidence)}</p></div></li>`).join('')}${(asset.checks||[]).map(c=>`<li><strong class="${c.status==='pass'?'ready':asset.resolution?.overridden&&c.name==='Independent semantic audit'?'warning':'danger'}">${asset.resolution?.overridden&&c.name==='Independent semantic audit'?'OVERRIDDEN':esc(c.status.toUpperCase())}</strong><div>${esc(c.name)}<p>${esc(c.name === 'source-render-binding' ? 'The output files match this exact candidate source.' : c.message)}</p></div></li>`).join('')}</ul></details><details><summary>Read or edit the candidate source</summary><p>Saving creates new rendered files and reruns checks. All representative reviews and approval are reset.</p><label class="sr-only" for="candidate-editor">Candidate source</label><textarea id="candidate-editor" spellcheck="false"${isBusy()||run.status==='approved'?' disabled':''}>${esc(asset.candidateText || '')}</textarea><button id="save-candidate" class="secondary"${isBusy()||!asset.candidateText||run.status==='approved'?' disabled':''}>Save changes & check again</button></details></div>`;
+  $('asset-content').insertAdjacentHTML('afterbegin',`${lastRevision?`<div class="revision-receipt"><strong>${lastRevision.status==='completed'?'Revision checked. Review the updated asset.':'Revision needs attention.'}</strong><p>Your request: ${esc(lastRevision.feedback)}</p></div>`:''}<form id="asset-revision-form" class="asset-revision-form"${revisionOpenKey===revisionKey?'':' hidden'}><label for="revision-feedback">What should change in ${esc(asset.id)}?</label><p id="revision-help">AI revises this asset, then checks the included campaign again. Earlier files stay intact; review marks and approval reset.</p><textarea id="revision-feedback" maxlength="2000" required rows="3" aria-describedby="revision-help" placeholder="Describe the correction you want…">${esc(revisionDrafts.get(revisionKey)||'')}</textarea><div class="revision-form-actions"><button id="submit-revision" class="primary"${isBusy()||!state.capabilities?.assetRevision?' disabled':''}>Revise asset & check</button><button id="cancel-revision" type="button" class="text-button">Cancel</button><span class="muted">${state.capabilities?.assetRevision?`Model: ${esc(state.provider.model)}`:'Restart Campaign Control in Terminal to enable asset revisions.'}</span></div></form>`);
+  $('request-revision').addEventListener('click',()=>{revisionOpenKey=revisionKey;$('asset-revision-form').hidden=false;$('request-revision').setAttribute('aria-expanded','true');$('revision-feedback').focus();});
+  $('cancel-revision').addEventListener('click',()=>{revisionOpenKey=null;$('asset-revision-form').hidden=true;$('request-revision').setAttribute('aria-expanded','false');$('request-revision').focus();});
+  $('revision-feedback').addEventListener('input',()=>revisionDrafts.set(revisionKey,$('revision-feedback').value));
+  $('asset-revision-form').addEventListener('submit',event=>{event.preventDefault();const feedback=$('revision-feedback').value.trim();if(!feedback||isBusy())return;void guarded(async()=>{pendingRun=true;setView('progress');renderProgress();$('progress-message').textContent=`Sending your revision request for ${asset.id}…`;try{state=await api(`/api/runs/${run.id}/assets/${asset.id}/revision`,{feedback,candidateHash:run.candidateHash});revisionDrafts.delete(revisionKey);revisionOpenKey=null;$('confirm-facts').checked=false;selectedId=asset.id;routeRun();}finally{pendingRun=false;}}).then(()=>{if(view==='review'){$('asset-toolbar').scrollIntoView({block:'start',behavior:'instant'});$('request-revision')?.focus({preventScroll:true});}});});
+  $('mark-reviewed').addEventListener('click',() => guarded(async()=>{state=await api(`/api/runs/${run.id}/reviews/${asset.id}`,{candidateHash:run.candidateHash}); const next=ids.find(id=>state.run.reviews?.[id]?.candidateHash!==state.run.candidateHash); if(next)selectedId=next;renderReview(true);}).then(()=>{const finished=ids.every(id=>state.run.reviews?.[id]?.candidateHash===state.run.candidateHash);const target=finished?$('confirm-facts'):$('mark-reviewed');target?.scrollIntoView({block:'center',behavior:'instant'});target?.focus({preventScroll:true});}));
+  $('save-candidate').addEventListener('click',() => {const markdown=$('candidate-editor').value; void guarded(async()=>{setView('progress');renderProgress();$('progress-message').textContent='Saving your correction and producing new output files…';state=await api(`/api/runs/${run.id}/assets/${asset.id}`,{markdown});$('confirm-facts').checked=false;routeRun();});});
+}
+function resolutionActions(asset) {
+  const enabled=state.capabilities?.assetResolution && !isBusy();
+  return `${!assetCleared(asset)?`<button type="button" class="secondary" data-resolution="override" data-resolution-asset="${esc(asset.id)}"${!enabled||!asset.resolution?.canOverride?' disabled':''}>Override AI finding</button>`:''}<button type="button" class="text-button" data-resolution="exclude" data-resolution-asset="${esc(asset.id)}"${!enabled||scopeAssets().length<2?' disabled':''}>Exclude from launch</button>${!state.capabilities?.assetResolution?'<span class="help">Restart Campaign Control to enable human resolutions.</span>':''}`;
+}
+function renderResolutions() {
+  const decisions=Object.values(state.run?.assetDecisions || {});
+  $('review-resolutions').hidden=!decisions.length;
+  $('review-resolutions').innerHTML=decisions.length?`<h3>Human decisions for this release</h3>${decisions.map(d=>`<div class="resolution-row"><div><strong>${esc(d.assetId)} · ${d.action==='exclude'?'Excluded from launch':'AI finding overridden'}</strong><p>${esc(d.reason)}</p><small>Recorded by ${esc(d.reviewer)}</small></div><button type="button" class="secondary" data-resolution="restore" data-resolution-asset="${esc(d.assetId)}"${isBusy()?' disabled':''}>${d.action==='exclude'?'Include again':'Undo override'}</button></div>`).join('')}`:'';
+}
+function openResolution(assetId, action) {
+  const asset=state.assets.find(a=>a.id===assetId);if(!asset||isBusy()||!state.capabilities?.assetResolution)return;
+  resolutionTarget={runId:state.run.id,assetId,action,candidateHash:state.run.candidateHash};
+  $('resolution-heading').textContent=action==='override'?`Override the AI finding on ${assetId}?`:action==='exclude'?`Exclude ${assetId} from launch?`:`Undo the decision on ${assetId}?`;
+  $('resolution-description').textContent=action==='override'?'You are accepting this exact asset despite the AI finding. The original finding and your reason stay in the record. This marks the asset reviewed; final release approval is still required.':action==='exclude'?'This asset and all its publisher files will stay out of the release. Its work is preserved, and you can include it again. Reviews of unchanged assets are retained.':'The asset returns to its previous review state. Any restored blocker must be resolved before release approval.';
+  $('resolution-reviewer').value=$('reviewer').value;
+  $('resolution-reason').value='';$('resolution-error').hidden=true;$('submit-resolution').disabled=false;
+  $('submit-resolution').textContent=action==='override'?'Override & continue':action==='exclude'?'Exclude asset':'Undo decision';
+  $('resolution-dialog').showModal();($('resolution-reviewer').value?$('resolution-reason'):$('resolution-reviewer')).focus();
+}
+document.addEventListener('click',event=>{const button=event.target.closest('[data-resolution]');if(button&&!button.disabled)openResolution(button.dataset.resolutionAsset,button.dataset.resolution);});
+$('cancel-resolution').addEventListener('click',()=>$('resolution-dialog').close());
+$('resolution-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(isBusy()||!resolutionTarget)return;
+  const target={...resolutionTarget}, reviewer=$('resolution-reviewer').value.trim(),reason=$('resolution-reason').value.trim();if(!reviewer||!reason)return;
+  requestBusy=true;$('submit-resolution').disabled=true;$('resolution-error').hidden=true;
+  try {
+    state=await api(`/api/runs/${target.runId}/assets/${target.assetId}/resolution`,{action:target.action,candidateHash:target.candidateHash,reviewer,reason,markReviewed:target.action==='override'});
+    $('resolution-dialog').close();resolutionTarget=null;$('reviewer').value=reviewer;$('confirm-facts').checked=false;reviewSignature='';
+    toast(target.action==='exclude'?'Asset excluded. Review the updated release scope.':target.action==='override'?'AI finding overridden. Your decision is recorded.':'Decision undone. Review the updated status.');
+  } catch(error) {$('resolution-error').textContent=error.message;$('resolution-error').hidden=false;}
+  finally {requestBusy=false;$('submit-resolution').disabled=false;dashboard();if(view==='review')renderReview(true);}
+});
+function renderFailure() {
+  const run=state.run; const questions=run?.questions || [];
+  const providerFailure=run?.providerFailure || /Live AI request returned HTTP|not configured on the server/.test(run?.error || '');
+  $('failure-heading').textContent=providerFailure ? 'AI access needs attention.' : 'Let’s resolve this first.';
+  $('retry-button').textContent=providerFailure ? 'Back to campaign' : 'Revise brief & start a new version';
+  $('failure-details').innerHTML = `<p>${esc(run?.error || run?.progress?.message || 'This version needs attention.')}</p>${questions.length?`<ul>${questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ul>`:''}`;
+}
+function renderRelease() {
+  const release=state.readyRelease, run=state.run; if(!release)return;
+  $('release-summary').textContent=`${run.change.product} · ${release.assetCount} approved assets, with their publisher files.`;
+  $('release-timing').textContent = processingReceipt();
+  $('release-version').textContent=release.version;
+  $('release-scope').textContent=release.partial?`Focused release: ${release.assetCount} of ${state.assets.length} campaign assets. The remaining ${state.assets.length-release.assetCount} ${state.assets.length-release.assetCount===1?'asset is':'assets are'} not approved by this package.`:'The full campaign is included in this approved release.';
+  $('release-path').textContent=`${state.workspace.path}/${release.directory}`;
+  $('download-release').href=safeURL(release.downloadUrl);
+  $('release-approval').textContent=`Approved by ${run.approval.reviewer} · ${new Date(run.approval.at).toLocaleString()} · Starting another version clears current readiness; this release is retained.`;
+}
+function routeRun() {
+  if (!state.run || state.run.status === 'draft') {setView('dashboard');dashboard();return;}
+  if (state.busy || active.has(state.run.status)) {setView('progress');renderProgress();}
+  else if(state.readyRelease && state.run.status==='packaged'){setView('release');renderRelease();}
+  else if(state.run.change && state.run.candidateHash && ['review','blocked','rejected','approved'].includes(state.run.status)){setView('review');renderReview();}
+  else {setView('failure');renderFailure();}
+}
+async function refresh() {
+  if (refreshing) return; refreshing=true;
+  try {
+    const previousHash=state?.run?.candidateHash, previousRun=state?.run?.id;
+    state=await api('/api/state');
+    if(previousHash!==state.run?.candidateHash || previousRun!==state.run?.id){$('confirm-facts').checked=false;reviewSignature='';}
+    dashboard();
+    if(view==='progress' && !pendingRun)routeRun();
+    else if(view==='review'){if(state.busy || !state.run?.candidateHash || state.run.status==='stale')routeRun();else renderReview();}
+    else if(view==='release'){if(!state.readyRelease)routeRun();else renderRelease();}
+    if($('library').open && librarySignature!==JSON.stringify([state.run?.id,state.run?.candidateHash]))renderLibrary();
+  } catch(error){toast(error.message);}
+  finally{refreshing=false;}
+}
+async function guarded(work) {
+  if(requestBusy)return;requestBusy=true;
+  try{await work();}catch(error){toast(error.message);if(view==='progress'){await refresh();if(!state?.busy&&!active.has(state?.run?.status))routeRun();}}
+  finally{requestBusy=false;if(state){dashboard();if(view==='review')renderReview(true);}}
+}
+async function openCampaign() {
+  await guarded(async()=>{
+    setView('loading');$('loading-message').textContent='Cross-checking campaign sources and registered files…';
+    const start=performance.now();
+    state=await api('/api/campaign/open',{});
+    $('loading-message').textContent=`${state.evidence.registered} assets found across ${state.evidence.channelCount} channels. Opening your dashboard…`;
+    // A short, truthful transition; never fabricate intermediate work or AI reasoning.
+    await new Promise(resolve=>setTimeout(resolve,Math.max(0,2000-(performance.now()-start))));
+    setBriefExpanded(false);setView('dashboard');dashboard();
+  });
+  if(view==='loading')setView('home');
+}
+function newBrief() {if(state.run?.brief)$('brief').value=state.run.brief;if(state.run?.scope)demoMode=state.run.scope.assetIds.length<state.run.scope.inventoryCount;setView('dashboard');dashboard();setBriefExpanded(true,true);}
+function openAssetReview(assetId) {
+  if (!scopeAssets().some(a=>a.id===assetId && a.candidateText) || !state.run?.candidateHash || isBusy()) return;
+  if ($('library').open) $('library').close();
+  selectedId=assetId;setView('review',false);renderReview(true);
+  $('asset-toolbar').scrollIntoView({block:'start',behavior:'instant'});$('asset-heading').focus({preventScroll:true});
+}
+function renderLibrary() {
+  const query=$('asset-search').value.toLowerCase().trim(), filter=$('channel-filter').value;
+  const status=$('asset-status-filter').value, included=new Set(scopeAssets().map(a=>a.id));
+  const items=state.assets.filter(a=>(!filter||a.channel===filter)&&(!status||(status==='included'?included.has(a.id):included.has(a.id)&&a.required&&!assetCleared(a)))&&`${a.id} ${a.title} ${channel(a.channel)}`.toLowerCase().includes(query));
+  $('library-list').innerHTML=items.length?items.map(a=>`<button class="library-row" data-asset="${esc(a.id)}"><span class="asset-id">${esc(a.id)}</span><strong>${esc(a.title)}</strong><small>${esc(assetType(a))} · ${state.run&&!included.has(a.id)?'Outside this release':a.resolution?.overridden?'Human override':a.candidateText?(a.status==='checked'?'Checks passed':'Needs attention'):'Original'}</small><span aria-hidden="true">↗</span></button>`).join(''):'<p class="muted">No matching assets.</p>';
+  librarySignature=JSON.stringify([state.run?.id,state.run?.candidateHash]);
+}
+function openLibrary(status='') {
+  $('library-detail').hidden=true;$('library-list').hidden=false;$('asset-search').value='';
+  $('asset-status-filter').value=typeof status==='string'?status:'';
+  $('channel-filter').innerHTML='<option value="">All channels</option>'+Object.keys(state.evidence.channels).map(c=>`<option value="${esc(c)}">${esc(channel(c))}</option>`).join('');
+  renderLibrary();$('library').showModal();$('asset-search').focus();
+}
+$('home-button').addEventListener('click',()=>{setView('home');dashboard();});
+$('demo-mode').addEventListener('change',()=>{demoMode=$('demo-mode').checked;updateMode();});
+$('campaign-button').addEventListener('click',openCampaign);
+$('toggle-update').addEventListener('click',()=>{if(!isBusy())setBriefExpanded($('update-editor').hidden,true);});
+$('background-button').addEventListener('click',()=>{setView('dashboard');dashboard();});
+$('brief').addEventListener('input',()=>{$('brief-length').textContent=`${$('brief').value.length} / 4,000`;if(state)dashboard();});
+$('brief-length').textContent=`${defaultBrief.length} / 4,000`;
+$('brief-form').addEventListener('submit',event=>{event.preventDefault();if(isBusy())return;void guarded(async()=>{
+  const brief=$('brief').value.trim();
+  const reviewAssetIds=representativeIds();
+  const request={brief,reviewAssetIds,...(demoMode ? {assetIds:reviewAssetIds} : {})};
+  pendingRun=true;setView('progress');$('progress-message').textContent='Reserving a new version and reading campaign sources…';
+  try{await api('/api/runs',request);state=await api('/api/state');selectedId=null;reviewSignature='';renderProgress();}finally{pendingRun=false;}
+});});
+$('review-cards').addEventListener('click',event=>{const button=event.target.closest('[data-review]');if(button){selectedId=button.dataset.review;renderReview(true);document.querySelector(`[data-review="${CSS.escape(selectedId)}"]`)?.focus({preventScroll:true});}});
+$('approval-blockers').addEventListener('click',event=>{const button=event.target.closest('[data-blocked-asset]');if(button)openAssetReview(button.dataset.blockedAsset);});
+$('review-all-button').addEventListener('click',()=>openLibrary('included'));
+$('confirm-facts').addEventListener('change',()=>renderReview());$('reviewer').addEventListener('input',()=>renderReview());
+$('approval-form').addEventListener('submit',event=>{event.preventDefault();if($('approve-button').disabled)return;void guarded(async()=>{
+  const run=state.run, candidateHash=run.candidateHash;
+  $('approve-button').disabled=true;$('approve-button').textContent='Preparing release…';
+  if(run.status!=='approved')state=await api(`/api/runs/${run.id}/decision`,{decision:'approve',candidateHash,reviewer:$('reviewer').value.trim(),comment:'Confirmed interpreted facts and reviewed representative assets in Campaign Control.'});
+  await api(`/api/runs/${run.id}/package`,{candidateHash});state=await api('/api/state');routeRun();
+});});
+$('reject-button').addEventListener('click',()=>{if(!$('reviewer').value.trim()){toast('Enter your name to record a review decision.');$('reviewer').focus();return;}void guarded(async()=>{state=await api(`/api/runs/${state.run.id}/decision`,{decision:'reject',candidateHash:state.run.candidateHash,reviewer:$('reviewer').value.trim(),comment:'Reviewer requested changes.'});toast('Version rejected. Request an asset revision or revise the brief.');renderReview(true);});});
+for(const id of ['revise-brief-button','retry-button'])$(id).addEventListener('click',newBrief);
+$('next-version').addEventListener('click',()=>void guarded(async()=>{const brief=state.run?.brief || $('brief').value;state=await api('/api/revisions',{});$('brief').value=brief;newBrief();}));
+for(const id of ['browse-button','all-candidates-button'])$(id).addEventListener('click',openLibrary);
+$('close-library').addEventListener('click',()=>$('library').close());
+$('asset-search').addEventListener('input',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
+$('channel-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
+$('asset-status-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
+$('library-list').addEventListener('click',event=>{const button=event.target.closest('[data-asset]');if(!button)return;const asset=state.assets.find(a=>a.id===button.dataset.asset);$('library-list').hidden=true;$('library-detail').hidden=false;$('library-detail').innerHTML=`<button class="text-button" id="back-library">← All assets</button><div class="asset-identity"><span class="asset-id">${esc(asset.id)}</span><span class="asset-type">${esc(assetType(asset))}</span></div><h3>${esc(asset.title)}</h3>${asset.candidateText&&scopeAssets().includes(asset)&&state.run?.candidateHash?'<button class="secondary" id="review-library-asset">Open review & revision controls</button>':''}<div class="preview-grid">${preview(asset,'source')}${asset.candidateText?preview(asset,'candidate'):''}</div>${asset.issues?.length?`<div class="notice">${asset.issues.map(i=>`<p>${esc(i.message)} ${esc(i.evidence)}</p>`).join('')}</div>`:''}`;$('back-library').addEventListener('click',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;});$('review-library-asset')?.addEventListener('click',()=>openAssetReview(asset.id));$('back-library').focus();});
+$('copy-path').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('release-path').textContent);toast('Release folder path copied.');}catch{toast('Copy the folder path shown above.');}});
+$('reset-demo-button').addEventListener('click',()=>{if(isBusy())return;resetTarget={campaignId:state.campaign.id,runId:state.run?.id ?? null};$('reset-demo-dialog').showModal();$('cancel-reset-demo').focus();});
+$('cancel-reset-demo').addEventListener('click',()=>$('reset-demo-dialog').close());
+$('confirm-reset-demo').addEventListener('click',()=>{if(isBusy()||!resetTarget)return;void guarded(async()=>{$('confirm-reset-demo').disabled=true;state=await api('/api/demo/reset',resetTarget);$('reset-demo-dialog').close();resetTarget=null;revisionDrafts.clear();revisionOpenKey=null;selectedId=null;reviewSignature='';librarySignature='';lastProgress='';demoMode=false;$('brief').value=defaultBrief;$('brief-length').textContent=`${defaultBrief.length} / 4,000`;$('reviewer').value='';$('confirm-facts').checked=false;setView('home');dashboard();toast('Demo reset. Original campaign restored; previous work is archived locally.');});});
+void refresh();setInterval(()=>void refresh(),2500);

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-labelledby="title">
+  <title id="title">Fictitious AI signal mark</title>
+  <g fill="#00B2FF">
+    <path d="M0 24h10v16H0zM15 12h10v28H15zM30 12h10v28H30zM30 0h10v8H30z"/>
+  </g>
+</svg>

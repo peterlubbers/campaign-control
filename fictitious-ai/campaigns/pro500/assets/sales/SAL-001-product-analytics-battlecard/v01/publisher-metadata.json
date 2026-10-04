@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-001",
+  "channel": "sales",
+  "sourceSha256": "7ab367fa71f1d0e607c9c5b38b0d8af7bcfccfa616db85e028b938aa187aaaed",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Product analytics battlecard | Fictitious AI",
+    "audience": "Product and analytics leaders",
+    "distribution_instruction": "Unpublished fictional PDF sales battlecard. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "assetId": "APP-004",
+  "channel": "in-product",
+  "sourceSha256": "bfb29244879715af7cb48d038c752debc90bc889073a17207bdfdce5d1f57be8",
+  "handoffState": "unpublished",
+  "fields": {
+    "surface": "Empty analysis workspace",
+    "message_title": "Start with one product question",
+    "message_body": "Choose a funnel or retention question, define the events, and inspect the assumptions behind the answer.",
+    "call_to_action": "Write a question",
+    "targeting_instruction": "General educational empty state. It does not depend on price, plan name or teammate access."
+  }
+}

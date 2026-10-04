@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-002",
+  "channel": "support",
+  "sourceSha256": "c49eedfee206f847c540c0d27178cb4406a1736b15cf65cd8e7b51dee7588651",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Check an event definition | Fictitious AI",
+    "article_summary": "Explain how to review an event definition before analyzing behavior.",
+    "help_center_path": "/help/event-help"
+  }
+}

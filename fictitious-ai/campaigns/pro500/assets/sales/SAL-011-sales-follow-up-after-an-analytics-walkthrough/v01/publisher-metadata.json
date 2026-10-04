@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-011",
+  "channel": "sales",
+  "sourceSha256": "dabd749d8a31683fac611cfa2268d9509bbd8af8e5ca856c9f565cc0d0ab90e1",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Sales follow-up after an analytics walkthrough | Fictitious AI",
+    "audience": "Sales representatives following an evaluation",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

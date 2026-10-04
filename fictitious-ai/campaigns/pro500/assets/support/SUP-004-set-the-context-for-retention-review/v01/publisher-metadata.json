@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-004",
+  "channel": "support",
+  "sourceSha256": "13591ff730ceb6619dedcfffb13825e28aba8ef4431198cd1b07c09f1639209f",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Set the context for retention review | Fictitious AI",
+    "article_summary": "Help users make retention definitions explicit before review.",
+    "help_center_path": "/help/retention-help"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-001",
+  "channel": "support",
+  "sourceSha256": "69bfbcb3b16c7910af0aa606d409ab096b1dd3bacba40242bfd09bb82dfbfbbc",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Start with one product question | Fictitious AI",
+    "article_summary": "Help new evaluators frame their first product analytics investigation.",
+    "help_center_path": "/help/getting-started"
+  }
+}

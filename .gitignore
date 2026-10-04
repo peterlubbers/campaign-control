@@ -1,0 +1,23 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.local/
+launch-control.local.config.json
+**/working/
+**/releases/
+**/READY-TO-PUBLISH
+# Private run state, source backups, reset archives and release staging at any depth.
+**/.launch-control/
+# Local build/review records and superseded presentation snapshots.
+/docs/build-events.jsonl
+/docs/github-preflight.json
+/docs/sales-deck-provenance/
+/docs/demo-deck/
+/presentation/native-verification.json
+*.log
+.DS_Store
+*.key
+*.pem
+credentials*.json
+token*.json

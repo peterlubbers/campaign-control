@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "assetId": "APP-002",
+  "channel": "in-product",
+  "sourceSha256": "09a5712e6e7a158a8ebcfe32ee1e8936dbc7321a316b625b95e938ac62817dbf",
+  "handoffState": "unpublished",
+  "fields": {
+    "surface": "Plan-selection summary banner",
+    "message_title": "Pro500: $500/month",
+    "message_body": "Sharing for up to five teammates is included. Confirm the offer and evaluation requirements before choosing a plan.",
+    "call_to_action": "Review plan details",
+    "targeting_instruction": "Intended for evaluators viewing plan information; do not apply automatically to existing accounts or infer renewal terms."
+  }
+}

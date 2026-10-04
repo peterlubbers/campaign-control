@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAD-005",
+  "channel": "paid",
+  "sourceSha256": "2eeeb228947da202271e85e9ab17c278e1c0dcfcfe478c97799f326340f943dc",
+  "handoffState": "unpublished",
+  "fields": {
+    "placement": "LinkedIn sponsored content feed",
+    "ad_headline": "Where does the journey change?",
+    "ad_description": "Investigate the path through your product. Pro500 is $500/month, with sharing for up to five teammates.",
+    "call_to_action": "Explore the funnel",
+    "destination_instruction": "Use the approved Fictitious AI product analytics evaluation page; publisher must confirm the final destination before release.",
+    "audience_instruction": "Tailor distribution to product leaders; this file does not authorize audience targeting, spend, scheduling, or publication.",
+    "publication_instruction": "Unpublished fictional campaign. Hold for human approval."
+  }
+}

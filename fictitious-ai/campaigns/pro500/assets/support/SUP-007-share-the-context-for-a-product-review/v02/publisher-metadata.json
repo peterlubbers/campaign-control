@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-007",
+  "channel": "support",
+  "sourceSha256": "45b0b43b4e3f7c1dfa03292c9f3ef22e7bbfb333b34d4e050dcef111d88f7c32",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Share the context for a product review | Fictitious AI",
+    "article_summary": "Guide a shared product-analysis review handoff.",
+    "help_center_path": "/help/analysis-context"
+  }
+}

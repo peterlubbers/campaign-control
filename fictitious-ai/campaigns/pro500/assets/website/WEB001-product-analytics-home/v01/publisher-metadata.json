@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB001",
+  "channel": "website",
+  "sourceSha256": "7df6a31e262d34d86721df6198f3cfd8957904f030483247216badead8da55ff",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Fictitious AI | Product analytics for useful questions",
+    "meta_description": "Examine events, funnels, retention, and cohorts with Fictitious AI Pro500. $500/month with sharing for up to five teammates.",
+    "url_path": "/"
+  }
+}

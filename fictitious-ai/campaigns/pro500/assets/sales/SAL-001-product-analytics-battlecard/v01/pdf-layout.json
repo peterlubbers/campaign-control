@@ -1,0 +1,100 @@
+{
+  "assetId": "SAL-001",
+  "brand": "Fictitious AI",
+  "title": "Product analytics battlecard",
+  "label": "Sales battlecard",
+  "sourceSha256": "7ab367fa71f1d0e607c9c5b38b0d8af7bcfccfa616db85e028b938aa187aaaed",
+  "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "style": {
+    "colors": {
+      "graphite": "#15212D",
+      "steel": "#273A4B",
+      "silver": "#CBD5E1",
+      "white": "#F2F6FA",
+      "muted": "#A7B7C9",
+      "blue": "#00B2FF"
+    },
+    "regularFont": "Arial",
+    "boldFont": "Arial-BoldMT",
+    "logo": {
+      "viewBox": [
+        0,
+        0,
+        40,
+        40
+      ],
+      "rects": [
+        {
+          "x": 0,
+          "y": 24,
+          "width": 10,
+          "height": 16
+        },
+        {
+          "x": 15,
+          "y": 12,
+          "width": 10,
+          "height": 28
+        },
+        {
+          "x": 30,
+          "y": 12,
+          "width": 10,
+          "height": 28
+        },
+        {
+          "x": 30,
+          "y": 0,
+          "width": 10,
+          "height": 8
+        }
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "kind": "title",
+      "text": "Product analytics battlecard"
+    },
+    {
+      "kind": "heading",
+      "text": "Best fit"
+    },
+    {
+      "kind": "body",
+      "text": "Fictitious AI is a fictional AI-assisted product analytics product for people who need to explore events, funnels, retention, and cohorts. Use natural-language analysis to frame a question, then inspect what the answer assumes."
+    },
+    {
+      "kind": "heading",
+      "text": "Discovery questions"
+    },
+    {
+      "kind": "body",
+      "text": "Where do users stop in the journey? What counts as returning? Why are these cohorts worth comparing? Separate observation from explanation."
+    },
+    {
+      "kind": "heading",
+      "text": "Current offer"
+    },
+    {
+      "kind": "body",
+      "text": "Pro500 is $500/month with sharing for up to five teammates. Bring reviewers into the same analysis when they need the definitions and context behind it. These are fictional terms for the simulated Fictitious AI launch."
+    },
+    {
+      "kind": "heading",
+      "text": "A deliberate evaluation"
+    },
+    {
+      "kind": "body",
+      "text": "Choose one product behavior. Define the relevant events and time window. Inspect the analysis and identify a conclusion that still needs evidence."
+    },
+    {
+      "kind": "heading",
+      "text": "Agree on a next step"
+    },
+    {
+      "kind": "body",
+      "text": "Select a fictional or permitted example and a human reviewer. Record open questions before treating the result as a product decision."
+    }
+  ]
+}

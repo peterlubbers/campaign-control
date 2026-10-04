@@ -1,0 +1,47 @@
+{
+  "assetId": "APP-003",
+  "createdAtUTC": "2026-10-03T19:00:06.026Z",
+  "sourceSha256": "c886ab6110f0da3031fe8517b9d4a158ca2fef8b7500f9a9b6069d4806b2756b",
+  "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "facts": {
+    "product": "Pro500",
+    "monthlyPrice": 500,
+    "sharing": true,
+    "maxTeammates": 5
+  },
+  "files": [
+    {
+      "path": "source.md",
+      "mime": "text/markdown",
+      "role": "editable-source"
+    },
+    {
+      "path": "publisher-metadata.md",
+      "mime": "text/markdown",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "publisher-metadata.json",
+      "mime": "application/json",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "review.html",
+      "mime": "text/html",
+      "role": "review-preview"
+    }
+  ],
+  "checks": [
+    {
+      "name": "publisher-metadata",
+      "status": "pass",
+      "message": "Publisher metadata includes all required in-product fields and is bound to the complete source hash. No publishing performed."
+    },
+    {
+      "name": "source-render-binding",
+      "status": "pass",
+      "message": "Rendered from the supplied Markdown; SHA-256 c886ab6110f0da3031fe8517b9d4a158ca2fef8b7500f9a9b6069d4806b2756b."
+    }
+  ],
+  "limitations": []
+}

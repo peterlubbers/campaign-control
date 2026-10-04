@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-003",
+  "channel": "support",
+  "sourceSha256": "d84846c25e24ef5ff429e2f34d1c786f60dad927d5cfaad764e8f843ed8cfc12",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Read a funnel without assuming the cause | Fictitious AI",
+    "article_summary": "Help evaluators distinguish funnel observation from causal explanation.",
+    "help_center_path": "/help/funnel-help"
+  }
+}

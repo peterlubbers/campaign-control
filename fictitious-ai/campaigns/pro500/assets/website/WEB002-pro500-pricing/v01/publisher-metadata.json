@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB002",
+  "channel": "website",
+  "sourceSha256": "b466335d054892df5292e9fe3da2b1f82672f90c9ad712a9e38c4dfe9969386f",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Pro500 pricing | Fictitious AI",
+    "meta_description": "Pro500 is $500/month with sharing for up to five teammates. Review the product analytics offer and bring your evaluation questions.",
+    "url_path": "/pricing"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB003",
+  "channel": "website",
+  "sourceSha256": "5ead7a02a9a95ffc4b6326aaf32c2f124132edba3ecf26e2284ea5cc04f656d9",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Events, funnels, retention, and cohorts | Fictitious AI",
+    "meta_description": "Explore the Fictitious AI product analytics workflow. Pro500 includes sharing for up to five teammates for $500/month.",
+    "url_path": "/product"
+  }
+}

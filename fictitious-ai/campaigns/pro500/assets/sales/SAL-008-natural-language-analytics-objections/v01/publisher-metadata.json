@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-008",
+  "channel": "sales",
+  "sourceSha256": "4a19b62aa9b993cd81ff64a3cb81db18a06e9841c731eef98971610779142502",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Natural-language analytics objections | Fictitious AI",
+    "audience": "Sales representatives",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

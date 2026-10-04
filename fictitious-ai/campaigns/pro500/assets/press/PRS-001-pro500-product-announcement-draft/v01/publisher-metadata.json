@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PRS-001",
+  "channel": "press",
+  "sourceSha256": "97403cb8e23f1e6ab089eaa2bad5b6e676b712dd12d9f53cb1b4e96caa8e9160",
+  "handoffState": "unpublished",
+  "fields": {
+    "release_title": "Fictitious AI introduces Pro500 at $500/month",
+    "summary": "Simulated product announcement for AI-assisted product analytics with sharing for up to five teammates.",
+    "media_contact_instruction": "No contact details supplied. An authorized human adds the approved media contact before distribution.",
+    "release_instruction": "Unpublished fictional draft. Human approval of this package does not send it to media or authorize external publication."
+  }
+}

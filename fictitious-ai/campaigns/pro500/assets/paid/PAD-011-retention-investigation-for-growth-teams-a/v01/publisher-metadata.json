@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAD-011",
+  "channel": "paid",
+  "sourceSha256": "5be62cfdef54f7be5d3830a9fb229244bf4667d0d0e468e3cdb88ac64e72c969",
+  "handoffState": "unpublished",
+  "fields": {
+    "placement": "LinkedIn sponsored content feed",
+    "ad_headline": "Are those cohorts telling different stories?",
+    "ad_description": "Look at retention across carefully defined cohorts. Pro500 is $500/month, with sharing for up to five teammates.",
+    "call_to_action": "Compare cohorts",
+    "destination_instruction": "Use the approved Fictitious AI product analytics evaluation page; publisher must confirm the final destination before release.",
+    "audience_instruction": "Tailor distribution to growth teams; this file does not authorize audience targeting, spend, scheduling, or publication.",
+    "publication_instruction": "Unpublished fictional campaign. Hold for human approval."
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "assetId": "VID-004",
+  "createdAtUTC": "2026-10-03T19:00:02.962Z",
+  "sourceSha256": "4c85549ba6bce188bee8b8ffd2e2fbc3a08905daa06e135d3bd6fdf10a32c0cc",
+  "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "facts": {
+    "product": "Pro500",
+    "monthlyPrice": 500,
+    "sharing": true,
+    "maxTeammates": 5
+  },
+  "files": [
+    {
+      "path": "source.md",
+      "mime": "text/markdown",
+      "role": "editable-source"
+    },
+    {
+      "path": "publisher-metadata.md",
+      "mime": "text/markdown",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "publisher-metadata.json",
+      "mime": "application/json",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "review.html",
+      "mime": "text/html",
+      "role": "review-preview"
+    },
+    {
+      "path": "youtube-metadata.md",
+      "mime": "text/markdown",
+      "role": "youtube-metadata"
+    },
+    {
+      "path": "youtube-metadata.json",
+      "mime": "application/json",
+      "role": "youtube-metadata"
+    },
+    {
+      "path": "captions.vtt",
+      "mime": "text/vtt",
+      "role": "captions"
+    },
+    {
+      "path": "thumbnail.svg",
+      "mime": "image/svg+xml",
+      "role": "thumbnail"
+    },
+    {
+      "path": "video.mp4",
+      "mime": "video/mp4",
+      "role": "native-video"
+    },
+    {
+      "path": "video-scenes.json",
+      "mime": "application/json",
+      "role": "video-scene-source"
+    },
+    {
+      "path": "thumbnail.png",
+      "mime": "image/png",
+      "role": "thumbnail"
+    },
+    {
+      "path": "video-verification.json",
+      "mime": "application/json",
+      "role": "render-evidence"
+    },
+    {
+      "path": "scene-02-proof.png",
+      "mime": "image/png",
+      "role": "render-evidence"
+    },
+    {
+      "path": "scene-03-proof.png",
+      "mime": "image/png",
+      "role": "render-evidence"
+    }
+  ],
+  "checks": [
+    {
+      "name": "publisher-metadata",
+      "status": "pass",
+      "message": "Publisher metadata includes all required video fields and is bound to the complete source hash. No publishing performed."
+    },
+    {
+      "name": "source-render-binding",
+      "status": "pass",
+      "message": "Rendered from the supplied Markdown; SHA-256 4c85549ba6bce188bee8b8ffd2e2fbc3a08905daa06e135d3bd6fdf10a32c0cc."
+    },
+    {
+      "name": "video-publisher-bundle",
+      "status": "pass",
+      "message": "Actual silent MP4 (18s, 1280×720, 24fps), timed on-screen-copy captions, thumbnail, and input-driven publisher metadata created. No upload performed."
+    }
+  ],
+  "limitations": [
+    "Silent motion typography; no narration.",
+    "Captions repeat on-screen copy.",
+    "Chapters are an editorial outline; platform chapter eligibility is not asserted."
+  ]
+}

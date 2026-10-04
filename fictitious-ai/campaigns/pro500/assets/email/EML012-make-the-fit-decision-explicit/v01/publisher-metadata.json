@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML012",
+  "channel": "email",
+  "sourceSha256": "d32d2337d10e40ddc5a09d5742e42076580fbe5fea86bfc4bc6a412f84585c92",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "The Pro500 decision: fit, terms, and open questions",
+    "preheader": "Review $500/month and sharing for up to five teammates against your intended use.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

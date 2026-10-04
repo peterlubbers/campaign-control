@@ -1,0 +1,16 @@
+{
+  "audioTrackCount" : 0,
+  "boldFont" : "Arial-BoldMT",
+  "brandIdentitySha256" : "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "decodedSceneProofs" : [
+    "thumbnail.png",
+    "scene-02-proof.png",
+    "scene-03-proof.png"
+  ],
+  "durationSeconds" : 18,
+  "fps" : 24,
+  "height" : 720,
+  "regularFont" : "Arial",
+  "sceneCount" : 3,
+  "width" : 1280
+}

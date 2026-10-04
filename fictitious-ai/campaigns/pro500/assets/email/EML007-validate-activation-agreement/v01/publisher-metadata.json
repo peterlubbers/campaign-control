@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML007",
+  "channel": "email",
+  "sourceSha256": "8d346007dc4583cfeaa67bcf0b7ad835527e4ff9b32bfc259102f5153bc65dc3",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Validate your activation definition with Pro500",
+    "preheader": "Pro500 offers sharing for up to five teammates for $500/month; bring the reviewers into the discussion.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

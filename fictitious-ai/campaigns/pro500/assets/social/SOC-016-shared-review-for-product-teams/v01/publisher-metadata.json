@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SOC-016",
+  "channel": "social",
+  "sourceSha256": "404d4034c1c462d7392fb459d3cd2ceeef44ff05627cdb4265168b85182cd49b",
+  "handoffState": "unpublished",
+  "fields": {
+    "platform": "LinkedIn",
+    "post_caption": "The person reading a funnel may not be the person who defined its events. Bring that context into the discussion. Fictitious AI Pro500 is $500/month, with sharing for up to five teammates.",
+    "alt_text": "Fictitious AI text card headed Bring the people who know the context. The card says: Product data needs interpretation. Pro500 lets you share Fictitious AI with up to five teammates for $500/month. Call to action: Plan a shared review.",
+    "hashtags": "#FictitiousAI #ProductTeams",
+    "publication_instruction": "Unpublished fictional campaign. Hold for human approval; publisher confirms final destination and schedule."
+  }
+}

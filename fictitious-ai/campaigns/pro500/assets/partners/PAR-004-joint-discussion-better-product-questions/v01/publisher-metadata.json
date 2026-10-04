@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAR-004",
+  "channel": "partners",
+  "sourceSha256": "c49c2d73eb4b35b7924f5d5240a60411c4778f196e9bd3d6bdc81336bd4fcb94",
+  "handoffState": "unpublished",
+  "fields": {
+    "listing_title": "Joint discussion: better product questions | Fictitious AI",
+    "partner_description": "Outline a partner discussion centered on analytical judgment.",
+    "distribution_instruction": "Unpublished fictional partner material. A human must choose the recipient or channel and approve distribution."
+  }
+}

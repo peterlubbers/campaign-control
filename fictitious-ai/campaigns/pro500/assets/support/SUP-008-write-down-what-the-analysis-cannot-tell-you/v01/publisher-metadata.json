@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-008",
+  "channel": "support",
+  "sourceSha256": "c90b4cf131b9f6525d1ec67464df8656690f1af469416c39763b1ab4e7b72db5",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Write down what the analysis cannot tell you | Fictitious AI",
+    "article_summary": "Provide an offer-independent guide to documenting analytical uncertainty.",
+    "help_center_path": "/help/uncertainty-guide"
+  }
+}

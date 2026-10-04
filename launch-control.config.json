@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "campaign": {
+    "type": "local",
+    "path": "./fictitious-ai/campaigns/pro500",
+    "brand": "./fictitious-ai/brand/identity.json"
+  },
+  "ai": {
+    "provider": "openai",
+    "model": "gpt-6.1-sol"
+  },
+  "server": {
+    "port": 8142
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-006",
+  "channel": "sales",
+  "sourceSha256": "d6ec200a41395ec761ca0c287258a9497f7693283119fe64cece1f19ad8eeb9f",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Retention evaluation worksheet | Fictitious AI",
+    "audience": "Lifecycle product managers",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

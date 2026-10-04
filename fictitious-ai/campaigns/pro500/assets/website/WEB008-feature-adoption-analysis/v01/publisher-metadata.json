@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB008",
+  "channel": "website",
+  "sourceSha256": "12cf6ee91f8e6a1dd3cad52ef6a8ae9848c1bcb69a8ffce120fd681e5617a665",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Understand feature adoption | Fictitious AI Pro500",
+    "meta_description": "Examine discovery, first use, and repeat use with product analytics. Pro500 is $500/month with sharing for up to five teammates.",
+    "url_path": "/use-cases/feature-adoption"
+  }
+}

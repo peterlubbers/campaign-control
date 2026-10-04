@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAD-015",
+  "channel": "paid",
+  "sourceSha256": "1cb3869665fda3008da753ac5a43c2ee50f3b3a44402de11c0d4b8408274b79f",
+  "handoffState": "unpublished",
+  "fields": {
+    "placement": "LinkedIn sponsored content feed",
+    "ad_headline": "Who will challenge the interpretation?",
+    "ad_description": "Discuss the product question with colleagues before acting on a pattern. Pro500 is $500/month, with sharing for up to five teammates.",
+    "call_to_action": "Bring another perspective",
+    "destination_instruction": "Use the approved Fictitious AI product analytics evaluation page; publisher must confirm the final destination before release.",
+    "audience_instruction": "Tailor distribution to growth teams; this file does not authorize audience targeting, spend, scheduling, or publication.",
+    "publication_instruction": "Unpublished fictional campaign. Hold for human approval."
+  }
+}

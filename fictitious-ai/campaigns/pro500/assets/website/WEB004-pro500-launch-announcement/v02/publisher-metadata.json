@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB004",
+  "channel": "website",
+  "sourceSha256": "dcde6d2cb7581f2a6ed8e30a5208683e73e878f61851779e214e4b75cbcc4347",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Introducing Pro500 | Fictitious AI",
+    "meta_description": "Meet Pro500: product analytics for $500/month with sharing for up to five teammates. Investigate behavior and review the evidence together.",
+    "url_path": "/launch/product-analytics"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB009",
+  "channel": "website",
+  "sourceSha256": "72f056c4d8853c26759ff1b9c7ea1d0b80ee71aca8d23981d7e74e58dd857c5a",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "A practical guide to naming product events | Fictitious AI",
+    "meta_description": "Write event definitions that describe observable actions, clarify triggers, and make analytical limitations understandable.",
+    "url_path": "/learn/event-naming"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAR-005",
+  "channel": "partners",
+  "sourceSha256": "1fd35bc1ba3dce55be82d7176d8fe1cf0ff4afbcbe14ed7968e8c52acc095581",
+  "handoffState": "unpublished",
+  "fields": {
+    "listing_title": "Partner referral handoff for analytics evaluation | Fictitious AI",
+    "partner_description": "Make a referral handoff useful without overstating the offer.",
+    "distribution_instruction": "Unpublished fictional partner material. A human must choose the recipient or channel and approve distribution."
+  }
+}

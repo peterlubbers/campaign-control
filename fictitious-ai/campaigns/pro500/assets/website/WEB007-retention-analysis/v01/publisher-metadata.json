@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "WEB007",
+  "channel": "website",
+  "sourceSha256": "51612cd7ae6e427a4716fa5eb988814a013be90773c1a0f4e51de663f04b0a10",
+  "handoffState": "unpublished",
+  "fields": {
+    "page_title": "Retention analysis with clear definitions | Fictitious AI",
+    "meta_description": "Define the return behavior that matters and examine cohorts in Fictitious AI. Pro500 is $500/month with sharing for up to five teammates.",
+    "url_path": "/use-cases/retention"
+  }
+}

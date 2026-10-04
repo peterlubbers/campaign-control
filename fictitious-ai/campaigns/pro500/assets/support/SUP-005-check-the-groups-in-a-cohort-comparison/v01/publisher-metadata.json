@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-005",
+  "channel": "support",
+  "sourceSha256": "c436f81c74899cc424117e5b58fb48e6bcee3ab545ff1bb0b43876a6e7797430",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Check the groups in a cohort comparison | Fictitious AI",
+    "article_summary": "Help users review the definitions behind cohort comparisons.",
+    "help_center_path": "/help/cohort-help"
+  }
+}

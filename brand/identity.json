@@ -1,0 +1,26 @@
+{
+  "id": "campaign-control-default",
+  "colors": {
+    "graphite": "#18202B",
+    "steel": "#2C394A",
+    "silver": "#D4DAE4",
+    "white": "#F4F6FA",
+    "muted": "#A9B5C7",
+    "blue": "#8DB4F4"
+  },
+  "typography": {
+    "sans": "Arial, \"Helvetica Neue\", sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "videoRegular": "Arial",
+    "videoBold": "Arial-BoldMT"
+  },
+  "copy": {
+    "productName": "Campaign Control",
+    "tagline": "Agentic campaign updates.",
+    "principle": "Inhuman scale. Human control."
+  },
+  "company": {
+    "name": "Campaign Control",
+    "mark": "relay"
+  }
+}

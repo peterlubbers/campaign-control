@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML006",
+  "channel": "email",
+  "sourceSha256": "6cdf4155f41722cd6d9b5878742108d7cc3168a66c02b4df0840fa091119b47b",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Evaluate the question, the workflow, and the Pro500 offer",
+    "preheader": "A focused review of product analytics at $500/month with sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

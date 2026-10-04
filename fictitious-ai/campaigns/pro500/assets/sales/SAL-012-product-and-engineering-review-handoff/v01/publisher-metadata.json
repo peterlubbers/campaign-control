@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-012",
+  "channel": "sales",
+  "sourceSha256": "32289711c9691dfe75524b3edf4e530f04970ffc14066fe681eb4dfc6e949923",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Product and engineering review handoff | Fictitious AI",
+    "audience": "Product managers and engineering leads",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

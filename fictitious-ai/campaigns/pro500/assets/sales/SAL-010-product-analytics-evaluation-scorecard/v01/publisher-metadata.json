@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-010",
+  "channel": "sales",
+  "sourceSha256": "81b463c64a5275c719a19042a216bc5496bd770ed390da4638ac1f13400c387b",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Product analytics evaluation scorecard | Fictitious AI",
+    "audience": "Economic evaluators and product leads",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

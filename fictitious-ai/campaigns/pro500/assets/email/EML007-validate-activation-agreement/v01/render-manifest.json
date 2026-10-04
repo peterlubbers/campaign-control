@@ -1,0 +1,47 @@
+{
+  "assetId": "EML007",
+  "createdAtUTC": "2026-10-03T18:59:56.684Z",
+  "sourceSha256": "8d346007dc4583cfeaa67bcf0b7ad835527e4ff9b32bfc259102f5153bc65dc3",
+  "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "facts": {
+    "product": "Pro500",
+    "monthlyPrice": 500,
+    "sharing": true,
+    "maxTeammates": 5
+  },
+  "files": [
+    {
+      "path": "source.md",
+      "mime": "text/markdown",
+      "role": "editable-source"
+    },
+    {
+      "path": "publisher-metadata.md",
+      "mime": "text/markdown",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "publisher-metadata.json",
+      "mime": "application/json",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "review.html",
+      "mime": "text/html",
+      "role": "review-preview"
+    }
+  ],
+  "checks": [
+    {
+      "name": "publisher-metadata",
+      "status": "pass",
+      "message": "Publisher metadata includes all required email fields and is bound to the complete source hash. No publishing performed."
+    },
+    {
+      "name": "source-render-binding",
+      "status": "pass",
+      "message": "Rendered from the supplied Markdown; SHA-256 8d346007dc4583cfeaa67bcf0b7ad835527e4ff9b32bfc259102f5153bc65dc3."
+    }
+  ],
+  "limitations": []
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-005",
+  "channel": "sales",
+  "sourceSha256": "b032511f0f4916a8d6ebdcc180117d0083df3d512f066b06ca97d5ac02286694",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Funnel walkthrough talk track | Fictitious AI",
+    "audience": "Sales engineers and growth evaluators",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

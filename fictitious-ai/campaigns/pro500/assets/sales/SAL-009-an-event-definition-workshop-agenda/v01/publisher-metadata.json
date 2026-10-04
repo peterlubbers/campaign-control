@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-009",
+  "channel": "sales",
+  "sourceSha256": "3e9f4e66c374ed78c7055882a5f719ff8b2f90632660c638d7f7f992ecb7935d",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "An event-definition workshop agenda | Fictitious AI",
+    "audience": "Solutions consultants and product analysts",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

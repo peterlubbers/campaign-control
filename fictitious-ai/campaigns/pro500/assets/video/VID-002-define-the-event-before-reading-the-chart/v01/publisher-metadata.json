@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "assetId": "VID-002",
+  "channel": "video",
+  "sourceSha256": "b71a96ac8d55ee01022aed92fd296be656fcc18fe65e51c3be84fcea2b11af24",
+  "handoffState": "unpublished",
+  "fields": {
+    "platform": "YouTube",
+    "visibility": "Unpublished draft; human chooses any future upload visibility.",
+    "audience_instruction": "Human publisher must confirm the appropriate audience setting; no audience setting has been applied.",
+    "rights_instruction": "Fresh fictional motion typography and copy. Verify any additions before upload."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "assetId": "APP-003",
+  "channel": "in-product",
+  "sourceSha256": "c886ab6110f0da3031fe8517b9d4a158ca2fef8b7500f9a9b6069d4806b2756b",
+  "handoffState": "unpublished",
+  "fields": {
+    "surface": "First-analysis checklist",
+    "message_title": "From first question to shared review",
+    "message_body": "Define the events, inspect the assumptions, and use Pro500 sharing for up to five teammates to review the result together.",
+    "call_to_action": "Start the checklist",
+    "targeting_instruction": "Intended for first-analysis onboarding. Human reviewers must confirm the checklist still matches the approved plan's access rules."
+  }
+}

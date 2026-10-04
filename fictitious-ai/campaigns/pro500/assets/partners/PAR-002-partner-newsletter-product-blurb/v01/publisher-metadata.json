@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAR-002",
+  "channel": "partners",
+  "sourceSha256": "89f71f9ce212b1689cb80f2593d4531c7be6668e6a34e24de69b0fe483c9a399",
+  "handoffState": "unpublished",
+  "fields": {
+    "listing_title": "Partner newsletter product blurb | Fictitious AI",
+    "partner_description": "Provide a newsletter-sized partner introduction with an evaluation call to action.",
+    "distribution_instruction": "Unpublished fictional partner material. A human must choose the recipient or channel and approve distribution."
+  }
+}

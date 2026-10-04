@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML004",
+  "channel": "email",
+  "sourceSha256": "41f051cf083f97d7e102779853c1808085b5d6d585a1807b09452328d4adf517",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Bring your onboarding question to a Pro500 walkthrough",
+    "preheader": "Review the journey and the offer: $500/month with sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

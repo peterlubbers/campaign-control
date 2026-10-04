@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML009",
+  "channel": "email",
+  "sourceSha256": "b5c7d4a984dc3391ef4385cf76d47cf1581d1d1481e541952fd4ecbd8c451dcd",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "What does the evidence support, and what remains a bet?",
+    "preheader": "Evaluate Pro500 at $500/month with sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML008",
+  "channel": "email",
+  "sourceSha256": "b3f4840c12509178bde7ccbc0e08fbe2d481053d9bef0228de1386771c7554db",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Before the retention comparison becomes a conclusion",
+    "preheader": "Check definitions, cohorts, and time windows before using a retention result.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

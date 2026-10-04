@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML003",
+  "channel": "email",
+  "sourceSha256": "6421092c16528d2d37fa8873623f69e7e4bf053b79f51584c4e8f163a841a314",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Which product question would change your next decision?",
+    "preheader": "Meet Pro500: $500/month and sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML002",
+  "channel": "email",
+  "sourceSha256": "cf19118688d9bbaee5a0a34bdf626eb03b5933b03b62a8fc43757565840e6553",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "Product analytics with the assumptions in view",
+    "preheader": "Fictitious AI Pro500 is $500/month with sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

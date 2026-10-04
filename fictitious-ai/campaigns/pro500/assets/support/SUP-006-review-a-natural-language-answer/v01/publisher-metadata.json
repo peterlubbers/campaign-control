@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SUP-006",
+  "channel": "support",
+  "sourceSha256": "2dda70fd9d0cfca07ec640b932236b1641940c9f3a2ad9f4bebde2cdb91edff4",
+  "handoffState": "unpublished",
+  "fields": {
+    "article_title": "Review a natural-language answer | Fictitious AI",
+    "article_summary": "Explain how to review an interpretation produced by natural-language analysis.",
+    "help_center_path": "/help/language-help"
+  }
+}

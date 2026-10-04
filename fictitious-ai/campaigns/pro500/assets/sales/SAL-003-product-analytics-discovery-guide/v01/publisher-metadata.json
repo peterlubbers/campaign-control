@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-003",
+  "channel": "sales",
+  "sourceSha256": "cdcd07d442aa12188ef1c76583a0dd15889a6e957708667550756d1f0a279501",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "Product analytics discovery guide | Fictitious AI",
+    "audience": "Salespeople leading discovery",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

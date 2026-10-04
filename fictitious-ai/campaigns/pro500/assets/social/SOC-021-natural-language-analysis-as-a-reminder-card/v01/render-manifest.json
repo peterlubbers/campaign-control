@@ -1,0 +1,57 @@
+{
+  "assetId": "SOC-021",
+  "createdAtUTC": "2026-10-03T18:59:56.762Z",
+  "sourceSha256": "34eb9a8fb5c7403c9554564ec79d5752161c31094642939c6a3d8f1debf7b697",
+  "brandIdentitySha256": "7004e7a7bf0a829ed2fbf506950ef13741aa315025d60203ff8da8f56f5f7ae1",
+  "facts": {
+    "product": "Pro500",
+    "monthlyPrice": 500,
+    "sharing": true,
+    "maxTeammates": 5
+  },
+  "files": [
+    {
+      "path": "source.md",
+      "mime": "text/markdown",
+      "role": "editable-source"
+    },
+    {
+      "path": "publisher-metadata.md",
+      "mime": "text/markdown",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "publisher-metadata.json",
+      "mime": "application/json",
+      "role": "publisher-metadata"
+    },
+    {
+      "path": "review.html",
+      "mime": "text/html",
+      "role": "review-preview"
+    },
+    {
+      "path": "graphic.svg",
+      "mime": "image/svg+xml",
+      "role": "graphic"
+    }
+  ],
+  "checks": [
+    {
+      "name": "publisher-metadata",
+      "status": "pass",
+      "message": "Publisher metadata includes all required social fields and is bound to the complete source hash. No publishing performed."
+    },
+    {
+      "name": "source-render-binding",
+      "status": "pass",
+      "message": "Rendered from the supplied Markdown; SHA-256 34eb9a8fb5c7403c9554564ec79d5752161c31094642939c6a3d8f1debf7b697."
+    },
+    {
+      "name": "graphic-layout",
+      "status": "pass",
+      "message": "Input-driven editable SVG created with bounded, readable text layout."
+    }
+  ],
+  "limitations": []
+}

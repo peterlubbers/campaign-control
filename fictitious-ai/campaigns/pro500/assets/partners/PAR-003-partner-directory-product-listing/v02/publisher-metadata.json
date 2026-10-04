@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "PAR-003",
+  "channel": "partners",
+  "sourceSha256": "3d8c3ff585de8b3c2293d0b93b14f3a0d5257668b50a840616f2cc812bce3a64",
+  "handoffState": "unpublished",
+  "fields": {
+    "listing_title": "Partner directory product listing | Fictitious AI",
+    "partner_description": "Supply a concise partner directory entry with accurate offer language.",
+    "distribution_instruction": "Unpublished fictional partner material. A human must choose the recipient or channel and approve distribution."
+  }
+}
