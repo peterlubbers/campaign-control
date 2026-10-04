@@ -111,6 +111,7 @@ Observed live runs at the October 3, 2026 hackathon:
 | OpenAI · `gpt-6.1-sol` | Four-asset walkthrough | 33.1 seconds | ~$0.04 | Ready for human review |
 | Anthropic · Fable 5.1 (`claude-fable-5-1`) | Four-asset walkthrough | 81.3 seconds | ~$0.46 | Ready for human review |
 | OpenAI · `gpt-6.1-sol` | Full campaign: 104 assets, 11 channels | 4 minutes 26.9 seconds | Not separately measured | All automated checks passed; human approval produced the complete package |
+| Anthropic · Fable 5.1 (`claude-fable-5-1`) | Full campaign: 104 assets, 11 channels | TBD | TBD | Not yet run |
 
 Processing time includes brief interpretation, AI revisions, rendering and checks; it excludes human review and packaging. A later OpenAI four-asset run completed in 34.2 seconds; its cost was not separately captured. The full run used 27 model requests with no retries.
 
