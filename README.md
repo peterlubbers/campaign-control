@@ -9,6 +9,8 @@ A reusable campaign workbench: connect a campaign folder, describe a product cha
 
 Built at the **Profound Marketing Engineering Hackathon**.
 
+![Choose a provider and model; bring your own campaign files, facts and brand; interpret, revise, audit, then obtain human approval for an exact publisher package.](docs/diagrams/campaign-control-architecture.svg)
+
 ## One package, your campaign
 
 ```text
@@ -83,8 +85,6 @@ For a fresh rehearsal, select **Reset demo** in the footer and **Archive & reset
 Starting another version clears current readiness and retains earlier releases. Full releases can become the next revision’s baseline; a partial release does not advance commercial facts across unrevised assets, so its next version starts from the campaign inputs. Input or output changes invalidate readiness when detected, on startup, and before download. Changes while the app is closed cannot clear a shortcut until it runs again.
 
 If an AI audit flags a judgment you disagree with, use **Override AI finding**, enter your name and reason, and continue. The original finding stays visible and travels with the release record. **Exclude from launch** removes an asset and its companions from this release, with an explicit reason; **Include again** restores it. These decisions preserve completed reviews of unchanged assets. A representative asset you explicitly override is marked reviewed. Final release approval is still a separate human action. Missing files, failed output checks, and stale content cannot be overridden. Rechecking invalidates prior AI overrides. An excluded asset makes the package partial; it does not silently advance the whole campaign's product facts.
-
-![Choose a provider and model; bring your own campaign files, facts and brand; interpret, revise, audit, then obtain human approval for an exact publisher package.](docs/diagrams/campaign-control-architecture.svg)
 
 ## Included example
 
