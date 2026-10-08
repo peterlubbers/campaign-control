@@ -685,6 +685,23 @@ test('HTTP demo reset requires CSRF, isolates the archive and withdraws old arti
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
 
+test('fresh-session state advertises the demo-scope default only for the bundled example', async t => {
+  const {engine}=await fixture(t);
+  const {createApplication}=await import('../server.mjs');const {server}=await createApplication({engine});
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  try {
+    const base=`http://127.0.0.1:${server.address().port}`;
+    let state=await (await fetch(`${base}/api/state`)).json();
+    assert.equal(state.capabilities.demoReset,false);
+    assert.equal(state.capabilities.demoScopeDefault,false,'An external campaign folder starts fresh sessions in full-campaign mode');
+    // The bundled example is selected exactly when its default artifact folder is in use, the same selection that enables demo reset.
+    engine.allowDemoReset=true;
+    state=await (await fetch(`${base}/api/state`)).json();
+    assert.equal(state.capabilities.demoReset,true);
+    assert.equal(state.capabilities.demoScopeDefault,true,'The bundled example starts fresh sessions in demo mode');
+  } finally {server.closeAllConnections();await new Promise(resolve => server.close(resolve));}
+});
+
 test('a prompt-driven focused release requires exact representative review and declares excluded assets', async t => {
   const {engine,campaign,campaignDir,provider}=await fixture(t);
   campaign.assets.push({id:'OUTSIDE',title:'Outside release',channel:'website',kind:'copy',source:'outside.md',required:true});

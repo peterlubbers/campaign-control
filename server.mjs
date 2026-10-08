@@ -61,11 +61,12 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
   const brand = await loadBrand(brandPath);
   const aiSettings = suppliedSettings || (suppliedEngine ? suppliedEngine.aiSettings : new AISettings({config:config || await loadConfiguration({root})}));
   const engine = suppliedEngine || new LaunchEngine({root,campaignDir,artifactDir,provider:aiSettings,aiSettings,renderAsset: input => renderAsset({...input,brand}),brandIdentitySha256:brandHash(brand)});
+  // The bundled example in its default artifact folder both enables demo reset and makes fresh sessions start in demo scope (capabilities.demoScopeDefault).
   if (!suppliedEngine) engine.allowDemoReset = await fs.realpath(campaignDir) === await fs.realpath(path.join(ROOT,'fictitious-ai/campaigns/pro500')) && path.resolve(artifactDir) === path.resolve(campaignDir);
   await engine.initialize();
   const csrfToken = randomBytes(32).toString('hex');
   let profoundEvidence = null;
-  const state = () => ({...engine.state(),aiSettings:aiSettings?.state() || null,versionProvider:aiSettings?.versionStatus(engine.run) || null,capabilities:{aiSettings:Boolean(aiSettings),assetRevision:true,assetResolution:true,demoReset:engine.allowDemoReset},branding:{company:brand.company.name,custom:Boolean(brandPath)},csrfToken,profound:{...profoundStatus(),evidence:profoundEvidence}});
+  const state = () => ({...engine.state(),aiSettings:aiSettings?.state() || null,versionProvider:aiSettings?.versionStatus(engine.run) || null,capabilities:{aiSettings:Boolean(aiSettings),assetRevision:true,assetResolution:true,demoReset:engine.allowDemoReset,demoScopeDefault:engine.allowDemoReset},branding:{company:brand.company.name,custom:Boolean(brandPath)},csrfToken,profound:{...profoundStatus(),evidence:profoundEvidence}});
   const server = http.createServer(async (request,response) => {
     response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');

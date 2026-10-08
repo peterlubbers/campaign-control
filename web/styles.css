@@ -1721,3 +1721,12 @@ dialog::backdrop {
 .resolution-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:16px 0; border-top:1px solid var(--line) }
 .resolution-row p { max-width:800px; margin:8px 0; overflow-wrap:anywhere }
 .resolution-row small { color:var(--muted) }
+
+/* Unsaved candidate-edit identification */
+.draft-flag { color:var(--amber); font-weight:700; margin-left:6px }
+#draft-note { margin:8px 0; color:var(--amber) }
+#mark-gate { margin:8px 0 0; color:var(--amber) }
+.stale-draft { border:1px solid #f3cb8040; background:#f3cb8009; border-radius:12px; padding:16px; margin:12px 0 }
+.stale-draft p { margin:8px 0 12px }
+.stale-draft .text-button { margin-left:12px }
+#discard-draft { margin-left:12px }
