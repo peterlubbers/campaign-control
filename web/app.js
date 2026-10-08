@@ -16,7 +16,7 @@ const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:
 function safeURL(value) {try {const url = new URL(value,location.origin); return url.origin === location.origin && url.pathname.startsWith('/artifacts/') ? url.pathname : '';} catch {return '';}}
 function toast(message) {clearTimeout(toastTimer); $('message').textContent = message; $('message').hidden = false; toastTimer = setTimeout(() => {$('message').hidden = true;},10000);}
 async function api(route, data) {
-  const response = await fetch(route, data === undefined ? {cache:'no-store'} : {method:'POST',headers:{'Content-Type':'application/json','X-Launch-Control-Token':state?.csrfToken || ''},body:JSON.stringify(data)});
+  const response = await fetch(route, data === undefined ? {cache:'no-store'} : {method:'POST',headers:{'Content-Type':'application/json','X-Campaign-Control-Token':state?.csrfToken || ''},body:JSON.stringify(data)});
   const result = await response.json(); if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`); return result;
 }
 function setView(next, focus = true) {

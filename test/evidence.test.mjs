@@ -12,7 +12,7 @@ function observation() {
   return {schemaVersion: 1, sourceType: 'manual-browser-observation', observationId: 'test-observation', observedAtUTC: '2026-10-03T18:00:00Z', dataset: {brand: 'Reference brand', categoryId}, dateRange: {start: '2026-09-28', endInclusive: '2026-10-02', platformFilter: 'Selected dashboard filters; not independently inspected'}, sourceUrl, prompts: [{id: 'QUESTION-1', text: 'Which analytical workflow fits a small product team?', platformPromptId: null, topic: 'Team fit', sourceUrl, intentTags: ['team-fit'], observedMixpanelVisibilityPercent: 40, executionsShown: 20}], limitations: ['Synthetic test record, not live observation evidence.']};
 }
 async function fixture(t, document = observation()) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'launch-evidence-test-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'campaign-control-evidence-test-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   await fs.mkdir(path.join(root, 'evidence'));
   const relative = 'evidence/test.json';
@@ -46,7 +46,7 @@ test('evidence cannot read other build files, traversal paths, or symlinks outsi
 });
 test('an evidence directory symlink cannot point outside the build root', async t => {
   const {root} = await fixture(t);
-  const other = await fs.mkdtemp(path.join(os.tmpdir(), 'launch-evidence-outside-test-'));
+  const other = await fs.mkdtemp(path.join(os.tmpdir(), 'campaign-control-evidence-outside-test-'));
   t.after(() => fs.rm(other, {recursive: true, force: true}));
   await fs.writeFile(path.join(other, 'test.json'), JSON.stringify(observation()));
   await fs.rm(path.join(root, 'evidence'), {recursive: true});

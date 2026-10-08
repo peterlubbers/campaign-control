@@ -8,7 +8,7 @@ Campaign Control revises campaign content and its publisher metadata together ac
 
 The server defaults to OpenAI's Responses API with strict structured JSON output; Anthropic's Messages API is an explicitly selectable alternative. A proposal request sees original facts, confirmed target facts, and actual campaign Markdown. A separate audit request checks candidates independently. Both reject missing, duplicate, or unexpected asset IDs, malformed responses, incomplete generations, refusals, and contradictory statuses. Unsupported commercial claims remain blocked for a human decision. There is no prerecorded model response, automatic provider fallback, or deterministic fallback presented as AI.
 
-Select the provider/model in **AI settings** and save. The config file is internal persistence, not the normal selection workflow. `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are ignored with a safe names-only notice. Credentials stay only in the server environment and never belong in browser bundles, configuration files, source control, or chat. [Configuration details](configuration.md).
+Select the provider/model in **AI settings** and save. The config file is internal persistence, not the normal selection workflow. `CAMPAIGN_CONTROL_AI_PROVIDER`, legacy `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are ignored with a safe names-only notice. Credentials stay only in the server environment and never belong in browser bundles, configuration files, source control, or chat. [Configuration details](configuration.md).
 
 | Provider | Required server credential | In-app choices |
 | --- | --- | --- |

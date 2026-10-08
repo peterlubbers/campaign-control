@@ -4,7 +4,7 @@ import {createReadStream, watch} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
-import {LaunchEngine, WorkflowError, containedFile} from './lib/engine.mjs';
+import {CampaignEngine, WorkflowError, containedFile} from './lib/engine.mjs';
 import {AISettings} from './lib/ai-settings.mjs';
 import {renderAsset} from './lib/render.mjs';
 import {BRAND, brandCSS, brandLogoSVG, loadBrand, brandHash} from './lib/brand.mjs';
@@ -57,10 +57,10 @@ async function serveFile(request, response, file, {artifact = false, download = 
 }
 
 export async function createApplication({root = ROOT, campaignDir, brandPath = null, artifactDir = campaignDir, engine: suppliedEngine, config, aiSettings: suppliedSettings} = {}) {
-  if (!campaignDir && !suppliedEngine) throw new Error('Select a campaign folder with --campaign /path/to/campaign or LAUNCH_CAMPAIGN_DIR.');
+  if (!campaignDir && !suppliedEngine) throw new Error('Select a campaign folder with --campaign /path/to/campaign or CAMPAIGN_CONTROL_CAMPAIGN_DIR.');
   const brand = await loadBrand(brandPath);
   const aiSettings = suppliedSettings || (suppliedEngine ? suppliedEngine.aiSettings : new AISettings({config:config || await loadConfiguration({root})}));
-  const engine = suppliedEngine || new LaunchEngine({root,campaignDir,artifactDir,provider:aiSettings,aiSettings,renderAsset: input => renderAsset({...input,brand}),brandIdentitySha256:brandHash(brand)});
+  const engine = suppliedEngine || new CampaignEngine({root,campaignDir,artifactDir,provider:aiSettings,aiSettings,renderAsset: input => renderAsset({...input,brand}),brandIdentitySha256:brandHash(brand)});
   // The bundled example in its default artifact folder both enables demo reset and makes fresh sessions start in demo scope (capabilities.demoScopeDefault).
   if (!suppliedEngine) engine.allowDemoReset = await fs.realpath(campaignDir) === await fs.realpath(path.join(ROOT,'fictitious-ai/campaigns/pro500')) && path.resolve(artifactDir) === path.resolve(campaignDir);
   await engine.initialize();
@@ -84,7 +84,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
       const pathname = decodeURIComponent(url.pathname);
       if (!['GET','HEAD','POST'].includes(request.method)) throw new WorkflowError('Method is not supported.',405);
       if (request.method === 'POST') {
-        const actual = Buffer.from(request.headers['x-launch-control-token'] || ''); const expected = Buffer.from(csrfToken);
+        const actual = Buffer.from(request.headers['x-campaign-control-token'] || ''); const expected = Buffer.from(csrfToken);
         if (actual.length !== expected.length || !timingSafeEqual(actual,expected)) throw new WorkflowError('Refresh the workbench before making changes.',403);
         const input = await body(request);
         if (pathname === '/api/settings/ai') {if (!aiSettings) throw new WorkflowError('Restart Campaign Control to enable AI settings.',503); await aiSettings.save(engine,input); return json(response,200,state());}
@@ -112,7 +112,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
         throw new WorkflowError('Unknown operation.',404);
       }
       if (pathname === '/api/state') {await engine.refreshReadiness(); return json(response,200,state());}
-      if (pathname === '/api/health') return json(response,200,{ok:true,service:'launch-control'});
+      if (pathname === '/api/health') return json(response,200,{ok:true,service:'campaign-control'});
       if (['/brand.css','/brand/logo.svg','/brand/default.css','/brand/default-logo.svg'].includes(pathname)) {
         const css = pathname.endsWith('.css');
         const selectedBrand = pathname.includes('default') ? BRAND : brand;
@@ -147,7 +147,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
   // Any external edit clears the current-ready marker after full integrity checks.
   let timer;
   const watcher = watch(engine.campaignDir, {recursive: true}, (_event, filename) => {
-    if (filename?.toString().startsWith('.launch-control/')) return;
+    if (filename?.toString().startsWith('.campaign-control/')) return;
     clearTimeout(timer);
     timer = setTimeout(() => {void engine.refreshReadiness().catch(() => {});}, 250);
     timer.unref();

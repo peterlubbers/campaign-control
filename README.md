@@ -15,7 +15,7 @@ Built at the **Profound Marketing Engineering Hackathon**.
 
 ```text
 campaign-control/
-├── launch-control.config.json   Internal campaign/server config and saved AI choice
+├── campaign-control.config.json   Internal campaign/server config and saved AI choice
 ├── server.mjs, lib/, web/        The application
 ├── fictitious-ai/              Included fictional company example
 │   ├── brand/                  Its identity, colors, and logo
@@ -32,7 +32,7 @@ campaign-control/
 └── presentation/               Google Slides link and architecture preview
 ```
 
-`*` Created by the workflow. Private state and approval history stay in the campaign’s hidden `.launch-control/` folder. The example media ships with the package; working versions, releases, private state, and readiness shortcuts are excluded from Git.
+`*` Created by the workflow. Private state and approval history stay in the campaign’s hidden `.campaign-control/` folder. The example media ships with the package; working versions, releases, private state, and readiness shortcuts are excluded from Git.
 
 ## Run locally
 
@@ -42,7 +42,7 @@ Run `npm start` from this directory. Open [localhost:8142](http://127.0.0.1:8142
 
 Configure `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` securely in the server environment before running AI updates. There are no key inputs in the app. Credential presence is not verified model access. Browsing and saving work without credentials; starting a run does not. The app does not automatically load `.env`.
 
-The last successfully saved choice returns after restart. [launch-control.config.json](launch-control.config.json) is internal persistence; the app updates only `ai.provider` and `ai.model`. Campaign, brand, and server settings remain intact. The optional `campaign.brand` still selects a company theme. [Brand ownership](docs/brand.md).
+The last successfully saved choice returns after restart. [campaign-control.config.json](campaign-control.config.json) is internal persistence; the app updates only `ai.provider` and `ai.model`. Campaign, brand, and server settings remain intact. The optional `campaign.brand` still selects a company theme. [Brand ownership](docs/brand.md).
 
 Point to an existing local campaign without moving its files:
 
@@ -58,7 +58,7 @@ OpenAI is the shipped default; Anthropic is also supported. **Google Drive is a 
 
 For the Fable model used in the hackathon demo, choose **Anthropic → Fable** in **AI settings** and save. Its current documented ID is `claude-fable-5-1`; account access is not guaranteed by its presence in the picker.
 
-Saved app settings are authoritative. `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are ignored with a notice naming the variables, never their values. Campaign overrides, `--config`, `PORT`, batching and timeout variables still work.
+Saved app settings are authoritative. `CAMPAIGN_CONTROL_AI_PROVIDER` (or legacy `LAUNCH_AI_PROVIDER`), `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are ignored with a notice naming the variables, never their values. Campaign overrides, `--config`, `PORT`, batching and timeout variables still work.
 
 Selection changes lock during processing and saving. Each run records its concrete provider/model before its first request; corrections and audits keep that model across restarts. **Next update’s model** and **This version’s model** are separate. Unlisted saved choices remain visible and need an explicit replacement before a new run. Ambiguous legacy provenance blocks further AI operations only, not viewing or valid approved downloads.
 
@@ -77,7 +77,7 @@ Releases contain finished copy/media, metadata, captions, thumbnails, and an app
 
 Asset feedback supports copy, publisher metadata, and the category label above ordinary HTML copy previews. For example: “Remove the duplicate SALES entry in the preview category label. Keep the rest unchanged.” That label belongs to the review preview, not the publisher's Markdown. Unsupported layout, footage, or native Slides requests remain blocked. **Reject version** records a rejection of the entire version; it does not send an asset correction to AI. The UI calls the included silent animated MP4s **Motion assets**; their inventory channel remains `video`.
 
-For a fresh rehearsal, select **Reset demo** in the footer and **Archive & reset demo**. The bundled example returns to the original Pro500 inventory: no active revision, review marks, approval, release download, or readiness shortcut. The next update starts at `v001`; the brief resets and Demo mode returns to its fresh-session default: on. Original sources/media, brand, model settings and server credentials are preserved. Generated work and previous state move to `.launch-control/demo-archives/reset-001/` (then `reset-002`, etc.), excluded from Git and inaccessible through the app's artifact routes. This is a recoverable archive, not permanent deletion. The reset is unavailable during processing or for an external campaign folder. Restart the server after backend changes, then refresh the page to load the controls.
+For a fresh rehearsal, select **Reset demo** in the footer and **Archive & reset demo**. The bundled example returns to the original Pro500 inventory: no active revision, review marks, approval, release download, or readiness shortcut. The next update starts at `v001`; the brief resets and Demo mode returns to its fresh-session default: on. Original sources/media, brand, model settings and server credentials are preserved. Generated work and previous state move to `.campaign-control/demo-archives/reset-001/` (then `reset-002`, etc.), excluded from Git and inaccessible through the app's artifact routes. This is a recoverable archive, not permanent deletion. The reset is unavailable during processing or for an external campaign folder. Restart the server after backend changes, then refresh the page to load the controls.
 
 Starting another version clears current readiness and retains earlier releases. Full releases can become the next revision’s baseline; a partial release does not advance commercial facts across unrevised assets, so its next version starts from the campaign inputs. Input or output changes invalidate readiness when detected, on startup, and before download. Changes while the app is closed cannot clear a shortcut until it runs again.
 

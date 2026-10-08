@@ -10,7 +10,7 @@ test('asset feedback is a separate live stage with bounded preview-label control
   const input = {...source('SALES-1'), channel:'sales', kind:'sales'};
   const provider = createProvider({env:{OPENAI_API_KEY:'synthetic-transport-only'},fetchImpl:async (_,init)=>{
     const body=JSON.parse(init.body), request=JSON.parse(body.input[0].content);
-    assert.equal(body.text.format.name,'launch_control_revision');
+    assert.equal(body.text.format.name,'campaign_control_revision');
     assert.equal(body.text.format.strict,true);
     assert.equal(request.operatorFeedback,'Remove the duplicate category label.');
     assert.deepEqual(request.confirmedFacts,change);
@@ -46,7 +46,7 @@ test('absent key does not call the network or pretend to be connected', async ()
 });
 test('batch processing covers each asset once, aggregates usage, and reports real transport success', async () => {
   const requested = []; const progress = [];
-  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only-value', LAUNCH_AI_BATCH_SIZE: '2'}, fetchImpl: async (url, init) => {
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only-value', CAMPAIGN_CONTROL_AI_BATCH_SIZE: '2'}, fetchImpl: async (url, init) => {
     assert.equal(url, 'https://api.anthropic.com/v1/messages');
     assert.equal(init.redirect, 'error');
     const body = JSON.parse(init.body);
@@ -207,7 +207,7 @@ test('OpenAI is the explicit default and uses native Responses structured output
     assert.equal(body.store, false);
     assert.equal(body.max_output_tokens, 12000);
     assert.equal(body.text.format.type, 'json_schema');
-    assert.equal(body.text.format.name, 'launch_control_proposal');
+    assert.equal(body.text.format.name, 'campaign_control_proposal');
     assert.equal(body.text.format.strict, true);
     assert.equal(body.text.format.schema.additionalProperties, false);
     assert.equal(body.messages, undefined);
@@ -234,7 +234,7 @@ test('OpenAI audit gathers typed message text after reasoning and retains source
     const body = JSON.parse(init.body);
     assert.equal(body.model, 'configured-model-test');
     assert.equal(body.max_output_tokens, 6000);
-    assert.equal(body.text.format.name, 'launch_control_audit');
+    assert.equal(body.text.format.name, 'campaign_control_audit');
     assert.match(body.instructions, /separate campaign quality reviewer/);
     const input = JSON.parse(body.input[0].content);
     assert.equal(input.assets[0].sourceMarkdown, 'Original source evidence.');
@@ -321,7 +321,7 @@ test('the complete editable brief reaches live interpretation and controls targe
   const provider = createProvider({env:{OPENAI_API_KEY:'synthetic-only'},fetchImpl:async(_,init)=>{
     const body=JSON.parse(init.body), input=JSON.parse(body.input[0].content);
     assert.equal(input.operatorBrief,brief);assert.deepEqual(input.confirmedFacts,facts);
-    assert.equal(body.text.format.name,'launch_control_brief');assert.equal(body.store,false);
+    assert.equal(body.text.format.name,'campaign_control_brief');assert.equal(body.store,false);
     return new Response(JSON.stringify({model:'synthetic-only',status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify({product:'Team900',monthlyPrice:900,sharing:false,maxTeammates:0,summary:'Rename and change the offer.',questions:[]})}]}],usage:{input_tokens:10,output_tokens:10}}));
   }});
   const result=await provider.interpretBrief({brief,facts});

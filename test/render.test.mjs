@@ -8,7 +8,7 @@ import {BRAND,BRAND_HASH,loadBrand,brandHash} from '../lib/brand.mjs';
 import {renderAsset,parseVideo,parsePublisherMetadata,visualMarkdown,PUBLISHER_FIELDS} from '../lib/render.mjs';
 
 async function temporary(t) {
-  const dir=await mkdtemp(path.join(os.tmpdir(),'launch-control-render-test-'));
+  const dir=await mkdtemp(path.join(os.tmpdir(),'campaign-control-render-test-'));
   t.after(()=>rm(dir,{recursive:true,force:true})); return dir;
 }
 const asset={id:'TEST-001',title:'Test-only rendering example',channel:'website',kind:'page',metadata:{}};

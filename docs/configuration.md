@@ -1,6 +1,6 @@
 # Campaign and AI configuration
 
-One `campaign-control/` package contains the tool and the Fictitious AI example. [Top-level configuration](../launch-control.config.json) chooses which campaign to open and internally persists the model saved through **AI settings**. Selecting another campaign does not copy or reorganize its existing files.
+One `campaign-control/` package contains the tool and the Fictitious AI example. [Top-level configuration](../campaign-control.config.json) chooses which campaign to open and internally persists the model saved through **AI settings**. Selecting another campaign does not copy or reorganize its existing files.
 
 ## Configuration rules
 
@@ -10,11 +10,11 @@ One `campaign-control/` package contains the tool and the Fictitious AI example.
 - `ai.provider` and `ai.model`: internal persistence for the app’s last successfully saved provider/model choice. Use the in-app picker, not JSON editing. Saving does not establish account access.
 - `server.port`: localhost port, default 8142.
 
-Use a private `launch-control.local.config.json` with `npm start -- --config launch-control.local.config.json` when local paths should stay out of Git. Unknown configuration fields are rejected. Keep API keys in the process environment: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Never put credentials in either configuration file.
+Use a private `campaign-control.local.config.json` with `npm start -- --config campaign-control.local.config.json` when local paths should stay out of Git. Unknown configuration fields are rejected. Keep API keys in the process environment: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Never put credentials in either configuration file.
 
-Campaign selection precedence: `--campaign` → `LAUNCH_CAMPAIGN_DIR` → config. Command-line and environment paths resolve from the current shell directory. `PORT` still overrides the configured port. A different campaign override drops the config’s company theme and uses Campaign Control defaults. Select a custom config to pair that campaign with its own `campaign.brand`. Restart after campaign, server or identity changes; saving AI selection needs no restart.
+Campaign selection precedence: `--campaign` → `CAMPAIGN_CONTROL_CAMPAIGN_DIR` (legacy `LAUNCH_CAMPAIGN_DIR` still accepted) → config. Command-line and environment paths resolve from the current shell directory. `PORT` still overrides the configured port. A different campaign override drops the config’s company theme and uses Campaign Control defaults. Select a custom config to pair that campaign with its own `campaign.brand`. Restart after campaign, server or identity changes; saving AI selection needs no restart.
 
-**Compatibility change, October 7:** saved app AI settings now take precedence. `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` no longer select models, including in `scripts/check-ai.mjs`; startup and settings show their names as ignored, never their values. Credentials, `--config`, campaign overrides, `PORT`, `LAUNCH_AI_BATCH_SIZE`, `LAUNCH_AI_CONCURRENCY`, and `LAUNCH_AI_TIMEOUT_MS` remain supported. Provider/model arguments are passed explicitly to adapters; the app does not mutate the process environment.
+**Compatibility change, October 7:** saved app AI settings now take precedence. `CAMPAIGN_CONTROL_AI_PROVIDER`, the legacy `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` do not select models, including in `scripts/check-ai.mjs`; startup and settings show their names as ignored, never their values. Credentials, `--config`, campaign overrides, `PORT`, `CAMPAIGN_CONTROL_AI_BATCH_SIZE`, `CAMPAIGN_CONTROL_AI_CONCURRENCY`, and `CAMPAIGN_CONTROL_AI_TIMEOUT_MS` remain supported; their `LAUNCH_AI_*` predecessors are still read when the new name is unset. Provider/model arguments are passed explicitly to adapters; the app does not mutate the process environment.
 
 **Save/Cancel:** selecting a provider requires explicitly choosing one of its models. Save accepts only a catalog provider/model pair, atomically replaces the active config (following a config symlink), and retains other configuration values. Failure keeps the previous file and selection. Concurrent saves and runs share a lock. Cancel closes settings without saving. An unconfigured provider can be saved; its server credential is required before any run starts. An unlisted saved identifier stays visible and is never silently replaced.
 
@@ -53,8 +53,8 @@ Optional `marketEvidencePath` resolves inside the campaign’s `evidence/` direc
 
 ## Storage and versions
 
-The selected campaign needs write access for `working/`, `releases/`, `.launch-control/`, and the `READY-TO-PUBLISH` shortcut. Existing inputs are preserved. Every new revision reserves a fresh version; every render within it reserves a new generation. The application never overwrites a released version.
+The selected campaign needs write access for `working/`, `releases/`, `.campaign-control/`, and the `READY-TO-PUBLISH` shortcut. Existing inputs are preserved. Every new revision reserves a fresh version; every render within it reserves a new generation. The application never overwrites a released version.
 
 `READY-TO-PUBLISH` is a local directory symlink to `releases/vNNN`, created only after exact-content approval and final checks. A new draft or detected input/output drift removes that shortcut. Retained release folders are history, not a statement of current readiness. The app verifies files on startup, state reads, and downloads, with a local watcher while running. It cannot monitor changes while closed or continuously verify a remote Google Slides link.
 
-The download archive and approved source snapshot remain private in `.launch-control/`; the archive contains only publisher files. Hidden state is needed to continue approval history and the approved baseline across restarts, so retain it in your private workspace backup. It is not part of the distributable example.
+The download archive and approved source snapshot remain private in `.campaign-control/`; the archive contains only publisher files. Hidden state is needed to continue approval history and the approved baseline across restarts, so retain it in your private workspace backup. It is not part of the distributable example.

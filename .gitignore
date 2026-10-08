@@ -3,11 +3,14 @@ node_modules/
 .env.*
 !.env.example
 .local/
+campaign-control.local.config.json
+# Legacy pre-rename private config and state; keep ignored so existing files never land in Git.
 launch-control.local.config.json
 **/working/
 **/releases/
 **/READY-TO-PUBLISH
 # Private run state, source backups, reset archives and release staging at any depth.
+**/.campaign-control/
 **/.launch-control/
 # Local build/review records and superseded presentation snapshots.
 /docs/build-events.jsonl

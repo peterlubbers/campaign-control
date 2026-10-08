@@ -10,7 +10,7 @@ import {AISettings} from '../lib/ai-settings.mjs';
 import {loadConfiguration, saveAISettings, validateSettings} from '../lib/config.mjs';
 import {MODELS, modelCatalog, concreteLegacySelection} from '../lib/model-catalog.mjs';
 import {createProvider} from '../lib/provider.mjs';
-import {LaunchEngine} from '../lib/engine.mjs';
+import {CampaignEngine} from '../lib/engine.mjs';
 import {createApplication} from '../server.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -28,7 +28,7 @@ async function fixture(t, {selection = sol, credentials = env, saveSettings, cat
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const campaignDir = path.join(root,'campaign');
   await fs.mkdir(campaignDir);
-  const configPath = path.join(root,'launch-control.config.json');
+  const configPath = path.join(root,'campaign-control.config.json');
   const originalConfig = {schemaVersion:1,campaign:{type:'local',path:'./campaign'},ai:selection,server:{port:8142}};
   await fs.writeFile(configPath,JSON.stringify(originalConfig));
   await fs.writeFile(path.join(campaignDir,'campaign.json'),JSON.stringify({id:'synthetic-settings',name:'Synthetic only',facts,assets:[{id:'A',title:'Test copy',channel:'website',kind:'copy',source:'a.md'}]}));
@@ -40,7 +40,7 @@ async function fixture(t, {selection = sol, credentials = env, saveSettings, cat
     const payload=JSON.parse(provider==='openai'?body.input[0].content:body.messages[0].content);
     const schema=provider==='openai'?body.text.format.schema:body.output_config.format.schema;
     const stage=schema.properties.summary?'brief':schema.properties.assets.items.properties.status?'audit':schema.properties.assets.items.properties.reviewLabel?'revision':'proposal';
-    const saved=JSON.parse(await fs.readFile(path.join(campaignDir,'.launch-control/state.json'),'utf8'));
+    const saved=JSON.parse(await fs.readFile(path.join(campaignDir,'.campaign-control/state.json'),'utf8'));
     if(saved.run.aiSelection) assert.deepEqual(saved.run.aiSelection,{...selection,catalogVersion:saved.run.aiSelection.catalogVersion},'Model binding is persisted before every request');
     else assert.deepEqual({provider:saved.run.provider.provider,model:saved.run.provider.model},selection,'Legacy calls use recorded provenance');
     calls.push({provider,model:body.model,stage,url});
@@ -54,7 +54,7 @@ async function fixture(t, {selection = sol, credentials = env, saveSettings, cat
     await fs.writeFile(path.join(outputDir,'copy.md'),markdown);
     return {files:[{path:'copy.md',mime:'text/markdown',role:'publishable-copy'}],primaryPath:'copy.md',checks:[]};
   };
-  const engine=new LaunchEngine({root:ROOT,campaignDir,provider:manager,aiSettings:manager,renderAsset});
+  const engine=new CampaignEngine({root:ROOT,campaignDir,provider:manager,aiSettings:manager,renderAsset});
   await engine.initialize();
   return {root,configPath,originalConfig,manager,engine,calls,factory,renderAsset,campaignDir};
 }
@@ -67,7 +67,7 @@ async function run(f, brief = true) {
 async function restart(f, credentials = env, catalog) {
   const config=await loadConfiguration({root:f.root,env:credentials});
   const manager=new AISettings({config,env:credentials,providerFactory:f.factory,catalog});
-  const engine=new LaunchEngine({root:ROOT,campaignDir:f.campaignDir,provider:manager,aiSettings:manager,renderAsset:f.renderAsset});
+  const engine=new CampaignEngine({root:ROOT,campaignDir:f.campaignDir,provider:manager,aiSettings:manager,renderAsset:f.renderAsset});
   await engine.initialize();
   return {...f,manager,engine};
 }
@@ -321,7 +321,7 @@ test('HTTP settings enforce CSRF, local origin, allowlisted input, and safe stat
     const state=await(await fetch(base+'/api/state')).json();
     const route=base+'/api/settings/ai', headers={'content-type':'application/json'};
     assert.equal((await fetch(route,{method:'POST',headers,body:JSON.stringify(opus)})).status,403);
-    headers['X-Launch-Control-Token']=state.csrfToken;
+    headers['X-Campaign-Control-Token']=state.csrfToken;
     assert.equal((await fetch(route,{method:'POST',headers:{...headers,origin:'https://outside.example'},body:JSON.stringify(opus)})).status,403);
     assert.equal((await fetch(route,{method:'POST',headers,body:JSON.stringify({...opus,apiKey:'DO_NOT_ECHO'})})).status,400);
     const response=await fetch(route,{method:'POST',headers,body:JSON.stringify(opus)});

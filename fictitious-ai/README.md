@@ -6,4 +6,4 @@ The demo requests Pro1000 at $1,000/month with sharing removed. These are fictio
 
 Its [brand folder](brand/) owns the electric-blue identity and signal logo. Campaign Control adopts this theme when the example is selected; the tool has its own defaults outside this company folder.
 
-Select this example or your own campaign in the package’s [top-level configuration](../launch-control.config.json). The application lives outside this company folder.
+Select this example or your own campaign in the package’s [top-level configuration](../campaign-control.config.json). The application lives outside this company folder.

@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {LaunchEngine, containedFile} from '../lib/engine.mjs';
+import {CampaignEngine, containedFile} from '../lib/engine.mjs';
 
 const exec = promisify(execFile);
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -49,7 +49,7 @@ async function fixture(t, {missing = false, renderOutside = false, blocked = fal
     await fs.writeFile(path.join(outputDir, 'youtube-metadata.json'), JSON.stringify({title: markdown.split('\n')[0], description: markdown, published: false}));
     return {files: [{path: 'preview.txt', mime: 'text/plain', role: 'publishable-copy'}, {path: 'source.md', mime: 'text/markdown', role: 'editable-source'}, {path: 'youtube-metadata.json', mime: 'application/json', role: 'publisher-metadata'}], primaryPath: 'preview.txt', textContent: markdown, checks: [{name: 'Synthetic renderer identity', status: 'pass', message: 'Fixture bytes written.'}]};
   };
-  const engine = new LaunchEngine({root, campaignDir, provider, renderAsset});
+  const engine = new CampaignEngine({root, campaignDir, provider, renderAsset});
   await engine.initialize();
   return {root, campaignDir, campaign, engine, provider, callCount: () => calls};
 }
@@ -323,7 +323,7 @@ test('an excluded broken candidate cannot block the remaining release or be rest
 test('an override survives restart but decision tampering invalidates approval',async t=>{
   const {engine}=await fixture(t,{blocked:true});await run(engine);
   await engine.resolveAsset(engine.run.id,'VIDEO-1',{action:'override',candidateHash:engine.run.candidateHash,reviewer:'Synthetic reviewer',reason:'Synthetic reason.'});
-  const restarted=new LaunchEngine({root:engine.root,campaignDir:engine.campaignDir,provider:engine.provider,renderAsset:engine.renderAsset});await restarted.initialize();
+  const restarted=new CampaignEngine({root:engine.root,campaignDir:engine.campaignDir,provider:engine.provider,renderAsset:engine.renderAsset});await restarted.initialize();
   assert.equal(restarted.state().assets[0].resolution.overridden,true);await approve(restarted);
   restarted.run.assetDecisions['VIDEO-1'].reason='Changed after approval';
   await assert.rejects(restarted.package(restarted.run.id,restarted.run.candidateHash),/exact checked candidate/);
@@ -343,7 +343,7 @@ test('HTTP asset resolutions require CSRF and preserve the failed AI check',asyn
     assert.equal(state.capabilities.assetResolution,true);
     const route=`${base}/api/runs/${engine.run.id}/assets/VIDEO-1/resolution`,body=JSON.stringify({action:'override',candidateHash:state.run.candidateHash,reviewer:'Synthetic reviewer',reason:'Synthetic HTTP resolution.'}),headers={'Content-Type':'application/json'};
     assert.equal((await fetch(route,{method:'POST',headers,body})).status,403);
-    headers['X-Launch-Control-Token']=state.csrfToken;
+    headers['X-Campaign-Control-Token']=state.csrfToken;
     const response=await fetch(route,{method:'POST',headers,body});assert.equal(response.status,200);
     const result=await response.json();assert.equal(result.run.status,'review');assert.equal(result.assets[0].resolution.overridden,true);assert.equal(result.assets[0].status,'blocked');
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
@@ -539,14 +539,33 @@ test('restart restores an approved pointer and revalidates its exact release', a
   const {engine,root,campaignDir,provider} = await fixture(t);
   await run(engine); await approve(engine);
   await engine.package(engine.run.id,engine.run.candidateHash);
-  const restarted = new LaunchEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
+  const restarted = new CampaignEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
   await restarted.initialize();
   assert.equal(restarted.state().workspace.status,'Ready to publish');
   await fs.appendFile(path.join(campaignDir,'releases/v001/manifest.json'),' ');
-  const changed = new LaunchEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
+  const changed = new CampaignEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
   await changed.initialize();
   assert.equal(changed.readyRelease,null);
   assert.equal(changed.state().workspace.status,'Draft');
+});
+
+test('pre-rename .launch-control state migrates with its approved release intact', async t => {
+  const {engine,root,campaignDir,provider} = await fixture(t);
+  await run(engine); await approve(engine);
+  const release = await engine.package(engine.run.id,engine.run.candidateHash);
+  const legacy = path.join(campaignDir,'.launch-control');
+  await fs.rename(path.join(campaignDir,'.campaign-control'),legacy);
+  const stateFile = path.join(legacy,'state.json');
+  await fs.writeFile(stateFile,(await fs.readFile(stateFile,'utf8')).split('.campaign-control/').join('.launch-control/'));
+  const restarted = new CampaignEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
+  await restarted.initialize();
+  await assert.rejects(fs.lstat(legacy),{code:'ENOENT'});
+  assert.equal(restarted.state().workspace.status,'Ready to publish');
+  assert.equal(restarted.readyRelease.archivePath,release.archivePath);
+  assert.match(restarted.readyRelease.archivePath,/^\.campaign-control\//);
+  assert.equal(sha(await fs.readFile(path.join(campaignDir,restarted.readyRelease.archivePath))),release.sha256);
+  assert.ok(!(await fs.readFile(path.join(campaignDir,'.campaign-control/state.json'),'utf8')).includes('"archivePath": ".launch-control/'));
+  assert.ok(restarted.events.some(e => e.type === 'state_migrated'));
 });
 
 test('a changed approved working representation cannot become the next baseline', async t => {
@@ -563,7 +582,7 @@ test('switching the selected identity invalidates an existing release on restart
   engine.brandIdentitySha256 = 'test-brand-a';
   await run(engine); await approve(engine);
   await engine.package(engine.run.id,engine.run.candidateHash);
-  const restarted = new LaunchEngine({root,campaignDir,provider,renderAsset:engine.renderAsset,brandIdentitySha256:'test-brand-b'});
+  const restarted = new CampaignEngine({root,campaignDir,provider,renderAsset:engine.renderAsset,brandIdentitySha256:'test-brand-b'});
   await restarted.initialize();
   assert.equal(restarted.readyRelease,null);
   assert.equal(restarted.run.approval,null);
@@ -595,12 +614,12 @@ test('HTTP version reset requires a token and withdraws the previous release dow
     const state = await (await fetch(`${base}/api/state`)).json();
     assert.equal(state.workspace.status,'Ready to publish');
     assert.equal((await fetch(base+release.downloadUrl)).status,200);
-    assert.equal((await fetch(`${base}/artifacts/.launch-control/state.json`)).status,404);
+    assert.equal((await fetch(`${base}/artifacts/.campaign-control/state.json`)).status,404);
     assert.equal((await fetch(base+release.downloadUrl.replace(release.filename,'approved-snapshot.json'))).status,404);
     const headers = {'Content-Type':'application/json'};
     assert.equal((await fetch(`${base}/api/revisions`,{method:'POST',headers,body:'{}'})).status,403);
     assert.equal(engine.run.version,'v001');
-    headers['X-Launch-Control-Token'] = state.csrfToken;
+    headers['X-Campaign-Control-Token'] = state.csrfToken;
     const reset = await fetch(`${base}/api/revisions`,{method:'POST',headers,body:'{}'});
     assert.equal(reset.status,200);
     const draft = await reset.json();
@@ -625,9 +644,9 @@ test('demo reset archives generated work and approvals, retains originals, and r
   assert.equal(engine.assets[0].candidateText,null); assert.equal(engine.assets[0].sourceText,original);
   assert.equal(JSON.parse(await fs.readFile(path.join(archive,'state.json'),'utf8')).run.approval.candidateHash,oldRun.approval.candidateHash);
   for(const file of outputs) assert.equal(sha(await fs.readFile(path.join(archive,file.artifactPath))),file.sha256);
-  assert.equal(sha(await fs.readFile(path.join(archive,release.archivePath.replace(/^\.launch-control\//,'')))),release.sha256);
+  assert.equal(sha(await fs.readFile(path.join(archive,release.archivePath.replace(/^\.campaign-control\//,'')))),release.sha256);
   for(const file of originals) assert.equal(sha(await fs.readFile(path.join(campaignDir,file.artifactPath))),file.sha256);
-  for(const relative of ['working','releases','READY-TO-PUBLISH','.launch-control/release-builds','.launch-control/reset-in-progress.json']) await assert.rejects(fs.lstat(path.join(campaignDir,relative)),{code:'ENOENT'});
+  for(const relative of ['working','releases','READY-TO-PUBLISH','.campaign-control/release-builds','.campaign-control/reset-in-progress.json']) await assert.rejects(fs.lstat(path.join(campaignDir,relative)),{code:'ENOENT'});
   assert.equal(await fs.readFile(path.join(campaignDir,'video.md'),'utf8'),original);
   await assert.rejects(engine.resetDemo(request),/campaign changed/);
   await run(engine); assert.equal(engine.run.version,'v001'); assert.notEqual(engine.run.id,oldRun.id);
@@ -677,7 +696,7 @@ test('HTTP demo reset requires CSRF, isolates the archive and withdraws old arti
     const base=`http://127.0.0.1:${server.address().port}`,state=await (await fetch(`${base}/api/state`)).json();
     const body=JSON.stringify({campaignId:state.campaign.id,runId:state.run.id}),headers={'Content-Type':'application/json'};
     assert.equal((await fetch(`${base}/api/demo/reset`,{method:'POST',headers,body})).status,403);
-    headers['X-Launch-Control-Token']=state.csrfToken;
+    headers['X-Campaign-Control-Token']=state.csrfToken;
     const response=await fetch(`${base}/api/demo/reset`,{method:'POST',headers,body});assert.equal(response.status,200);
     const reset=await response.json();assert.equal(reset.run,null);assert.equal(reset.busy,false);
     assert.equal((await fetch(base+previous)).status,404);
@@ -823,7 +842,7 @@ test('interrupted processing has no invented completion time after restart', asy
   const {engine,root,campaignDir,provider}=await fixture(t);
   await engine.newRevision();
   engine.beginWork('update');engine.run.status='rendering';await engine.save();
-  const restarted=new LaunchEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
+  const restarted=new CampaignEngine({root,campaignDir,provider,renderAsset:engine.renderAsset});
   await restarted.initialize();
   assert.equal(restarted.run.status,'failed');
   assert.equal(restarted.state().processing.elapsedSeconds,null);

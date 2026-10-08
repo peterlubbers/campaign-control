@@ -6,10 +6,10 @@ import os from 'node:os';
 import {loadConfiguration} from '../lib/config.mjs';
 
 async function fixture(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'launch-config-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'campaign-control-config-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const config = {schemaVersion: 1, campaign: {type: 'local', path: './example/campaign'}, ai: {provider: 'openai', model: 'test-openai'}, server: {port: 8142}};
-  const write = async value => fs.writeFile(path.join(root, 'launch-control.config.json'), JSON.stringify(value));
+  const write = async value => fs.writeFile(path.join(root, 'campaign-control.config.json'), JSON.stringify(value));
   await write(config);
   return {root, config, write};
 }
@@ -27,8 +27,9 @@ test('external config resolves campaign paths beside itself; CLI and environment
   await fs.writeFile(path.join(root, 'external', 'custom.json'), JSON.stringify(config));
   const base = {root, cwd: root, env: {}, args: ['--config', 'external/custom.json']};
   assert.equal((await loadConfiguration(base)).campaignDir, path.join(root, 'external/example/campaign'));
-  assert.equal((await loadConfiguration({...base, env: {LAUNCH_CAMPAIGN_DIR: './team'}})).campaignDir, path.join(root, 'team'));
-  assert.equal((await loadConfiguration({...base, env: {LAUNCH_CAMPAIGN_DIR: './team'}, args: [...base.args, '--campaign', './chosen']})).campaignDir, path.join(root, 'chosen'));
+  assert.equal((await loadConfiguration({...base, env: {CAMPAIGN_CONTROL_CAMPAIGN_DIR: './team'}})).campaignDir, path.join(root, 'team'));
+  assert.equal((await loadConfiguration({...base, env: {CAMPAIGN_CONTROL_CAMPAIGN_DIR: './team'}, args: [...base.args, '--campaign', './chosen']})).campaignDir, path.join(root, 'chosen'));
+  assert.equal((await loadConfiguration({...base, env: {LAUNCH_CAMPAIGN_DIR: './legacy'}})).campaignDir, path.join(root, 'legacy'));
 });
 
 test('saved selection ignores model overrides without mutating environment values', async t => {
@@ -39,6 +40,8 @@ test('saved selection ignores model overrides without mutating environment value
   assert.deepEqual(value.ignoredModelOverrides,['LAUNCH_AI_PROVIDER','OPENAI_MODEL','ANTHROPIC_MODEL']);
   assert.ok(!JSON.stringify(value).includes('test-anthropic'));
   assert.equal(env.OPENAI_MODEL, 'unused-openai'); assert.equal(env.ANTHROPIC_MODEL, 'test-anthropic');
+  const noticed = await loadConfiguration({root, env: {CAMPAIGN_CONTROL_AI_PROVIDER: 'anthropic'}});
+  assert.deepEqual(noticed.ignoredModelOverrides, ['CAMPAIGN_CONTROL_AI_PROVIDER']);
   const saved = await loadConfiguration({root, env: {LAUNCH_AI_PROVIDER: 'anthropic'}});
   assert.equal(saved.model, 'test-openai');
 });
@@ -70,7 +73,7 @@ test('bad CLI arguments and malformed configuration fail explicitly', async t =>
   for (const args of [['--campaign'], ['--unknown', 'value'], ['--campaign', 'one', '--campaign', 'two']]) {
     await assert.rejects(() => loadConfiguration({root, args, env: {}}), /Usage:/);
   }
-  await fs.writeFile(path.join(root, 'launch-control.config.json'), '{bad JSON');
+  await fs.writeFile(path.join(root, 'campaign-control.config.json'), '{bad JSON');
   await assert.rejects(() => loadConfiguration({root, env: {}}), /Could not read/);
 });
 

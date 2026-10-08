@@ -6,7 +6,7 @@ import path from 'node:path';
 import {assetFolder, reserveFolder} from '../lib/storage.mjs';
 
 async function fixture(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'launch-storage-test-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'campaign-control-storage-test-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   return root;
 }
