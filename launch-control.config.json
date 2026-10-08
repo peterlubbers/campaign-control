@@ -7,7 +7,7 @@
   },
   "ai": {
     "provider": "openai",
-    "model": "gpt-6.1-sol"
+    "model": "gpt-6-luna"
   },
   "server": {
     "port": 8142
