@@ -661,6 +661,21 @@ main {
   color:var(--ink)
 }
 
+#ai-settings-dialog { width:min(680px,94vw); max-height:90vh }
+#ai-settings-dialog h2 { margin:12px 0; font-size:28px }
+#ai-settings-dialog select { width:100%; margin:10px 0 20px }
+#ai-settings-dialog fieldset { border:0; padding:0; margin:0 }
+#ai-settings-dialog legend { font-size:13px; margin-bottom:10px }
+.ai-model-choice { display:flex; gap:14px; align-items:flex-start; padding:16px; border:1px solid var(--line); margin-bottom:10px; cursor:pointer }
+.ai-model-choice:has(:checked) { border-color:var(--accent) }
+.ai-model-choice input { width:auto; margin-top:4px; flex-shrink:0 }
+.ai-model-choice strong,.ai-model-choice small,.ai-model-choice .help { display:block; margin:0 0 5px }
+.ai-model-choice small { font-size:11px; color:var(--muted); overflow-wrap:anywhere }
+.ai-model-choice strong { font-size:16px }
+#ai-model-choices:disabled { opacity:.65 }
+#ai-catalog-details { font-size:12px; overflow-wrap:anywhere }
+#ai-settings-button { white-space:nowrap }
+
 .primary,.secondary {
   display:inline-flex;
   align-items:center;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {loadConfiguration, applyModelConfiguration} from '../lib/config.mjs';
+import {loadConfiguration} from '../lib/config.mjs';
 
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'launch-config-'));
@@ -31,15 +31,16 @@ test('external config resolves campaign paths beside itself; CLI and environment
   assert.equal((await loadConfiguration({...base, env: {LAUNCH_CAMPAIGN_DIR: './team'}, args: [...base.args, '--campaign', './chosen']})).campaignDir, path.join(root, 'chosen'));
 });
 
-test('provider override uses its own model and preserves unrelated environment values', async t => {
+test('saved selection ignores model overrides without mutating environment values', async t => {
   const {root} = await fixture(t);
   const env = {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_MODEL: 'test-anthropic', OPENAI_MODEL: 'unused-openai', PORT: '8242'};
   const value = await loadConfiguration({root, env});
-  assert.equal(value.model, 'test-anthropic'); assert.equal(value.port, 8242);
-  applyModelConfiguration(value, env);
+  assert.equal(value.provider, 'openai'); assert.equal(value.model, 'test-openai'); assert.equal(value.port, 8242);
+  assert.deepEqual(value.ignoredModelOverrides,['LAUNCH_AI_PROVIDER','OPENAI_MODEL','ANTHROPIC_MODEL']);
+  assert.ok(!JSON.stringify(value).includes('test-anthropic'));
   assert.equal(env.OPENAI_MODEL, 'unused-openai'); assert.equal(env.ANTHROPIC_MODEL, 'test-anthropic');
-  const fallback = await loadConfiguration({root, env: {LAUNCH_AI_PROVIDER: 'anthropic'}});
-  assert.equal(fallback.model, 'claude-sonnet-4-6');
+  const saved = await loadConfiguration({root, env: {LAUNCH_AI_PROVIDER: 'anthropic'}});
+  assert.equal(saved.model, 'test-openai');
 });
 
 test('Drive configuration fails honestly without attempting a connector; local override works', async t => {

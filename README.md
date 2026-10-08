@@ -15,7 +15,7 @@ Built at the **Profound Marketing Engineering Hackathon**.
 
 ```text
 campaign-control/
-├── launch-control.config.json   Campaign location and AI provider/model
+├── launch-control.config.json   Internal campaign/server config and saved AI choice
 ├── server.mjs, lib/, web/        The application
 ├── fictitious-ai/              Included fictional company example
 │   ├── brand/                  Its identity, colors, and logo
@@ -38,24 +38,11 @@ campaign-control/
 
 Requires **Node.js 22+**. Generating new videos or PDF collateral also requires **macOS and Swift/Xcode Command Line Tools**; the included MP4s and PDF are already rendered. No additional PDF package is needed.
 
-Set `OPENAI_API_KEY` securely in your server environment, then run `npm start` from this directory. Open [localhost:8142](http://127.0.0.1:8142). Credentials are needed for live revisions, not for browsing the included campaign. The app does not automatically load `.env`.
+Run `npm start` from this directory. Open [localhost:8142](http://127.0.0.1:8142), then choose **AI settings** in the header. Select OpenAI or Anthropic, choose a model, and **Save selection**. **Cancel** discards unsaved changes. Sol, Astra, Luna, Opus, Fable and Haiku show their version, actual API ID, and a factual description. Saving makes no model call and requires no manual JSON editing.
 
-[launch-control.config.json](launch-control.config.json) selects the campaign and model:
+Configure `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` securely in the server environment before running AI updates. There are no key inputs in the app. Credential presence is not verified model access. Browsing and saving work without credentials; starting a run does not. The app does not automatically load `.env`.
 
-```json
-{
-  "schemaVersion": 1,
-  "campaign": {
-    "type": "local",
-    "path": "./fictitious-ai/campaigns/pro500",
-    "brand": "./fictitious-ai/brand/identity.json"
-  },
-  "ai": {"provider": "openai", "model": "gpt-6.1-sol"},
-  "server": {"port": 8142}
-}
-```
-
-The optional `campaign.brand` selects a company theme for the app and new renders. Omit it for Campaign Control defaults. [Brand ownership](docs/brand.md).
+The last successfully saved choice returns after restart. [launch-control.config.json](launch-control.config.json) is internal persistence; the app updates only `ai.provider` and `ai.model`. Campaign, brand, and server settings remain intact. The optional `campaign.brand` still selects a company theme. [Brand ownership](docs/brand.md).
 
 Point to an existing local campaign without moving its files:
 
@@ -65,17 +52,17 @@ npm start -- --campaign "/path/to/your/campaign"
 
 That folder needs a `campaign.json` inventory mapping its current files. Editable sources are optional in the inventory; revising a required asset still needs a supported Markdown/plain-text source and renderer. Unsupported assets remain visible and block release. [Campaign mapping and configuration](docs/configuration.md).
 
-OpenAI is the demo default; Anthropic is also supported. Set the provider and model in the config, with its API key only in the server environment. **Google Drive is a planned connector.** Selecting it currently returns a clear error. [Drive design](docs/google-drive-design.md).
+OpenAI is the shipped default; Anthropic is also supported. **Google Drive is a planned connector.** Selecting it currently returns a clear error. [Drive design](docs/google-drive-design.md).
 
-### Anthropic example
+### Model selection and existing versions
 
-To use the Fable 5.1 model exercised in the hackathon demo, replace the `ai` object in `launch-control.config.json` with:
+For the Fable model used in the hackathon demo, choose **Anthropic → Fable** in **AI settings** and save. Its current documented ID is `claude-fable-5-1`; account access is not guaranteed by its presence in the picker.
 
-```json
-{"provider": "anthropic", "model": "claude-fable-5-1"}
-```
+Saved app settings are authoritative. `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` are ignored with a notice naming the variables, never their values. Campaign overrides, `--config`, `PORT`, batching and timeout variables still work.
 
-Set `ANTHROPIC_API_KEY` in the server environment and restart with `npm start`. The model must be available to your account. Unset `LAUNCH_AI_PROVIDER` and `ANTHROPIC_MODEL` if they should no longer override the config. Never put API keys in config or source control.
+Selection changes lock during processing and saving. Each run records its concrete provider/model before its first request; corrections and audits keep that model across restarts. **Next update’s model** and **This version’s model** are separate. Unlisted saved choices remain visible and need an explicit replacement before a new run. Ambiguous legacy provenance blocks further AI operations only, not viewing or valid approved downloads.
+
+The six-model catalog was checked against official documentation on **October 7, 2026**, after the hackathon. It changes through reviewed, tested app releases, not automatically. Pricing and maintenance details stay under **Model details and maintenance** in settings. [Catalog sources and maintenance](docs/ai-models.md).
 
 ## Draft → review → ready to publish
 

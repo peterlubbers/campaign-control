@@ -21,3 +21,8 @@ launch-control.local.config.json
 *.pem
 credentials*.json
 token*.json
+
+# Account-specific campaign evidence and local publication/review notes.
+**/evidence/
+/docs/brand-verification/
+/docs/github-release-plan.md

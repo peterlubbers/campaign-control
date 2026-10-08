@@ -1,19 +1,26 @@
 # Campaign and AI configuration
 
-One `campaign-control/` package contains the tool and the Fictitious AI example. [Top-level configuration](../launch-control.config.json) chooses which campaign to open and which model to use. Selecting another campaign does not copy or reorganize its existing files.
+One `campaign-control/` package contains the tool and the Fictitious AI example. [Top-level configuration](../launch-control.config.json) chooses which campaign to open and internally persists the model saved through **AI settings**. Selecting another campaign does not copy or reorganize its existing files.
 
 ## Configuration rules
 
 - `campaign.type`: `local` is implemented. `google-drive` is reserved and fails explicitly; no Drive access occurs.
 - `campaign.path`: campaign directory containing `campaign.json`. Relative paths resolve beside the configuration file.
 - `campaign.brand`: optional company identity JSON, relative to the config file. Omit for Campaign Control defaults.
-- `ai.provider`: `openai` or `anthropic`.
-- `ai.model`: model identifier available to your selected provider/account. Configuration does not establish access.
+- `ai.provider` and `ai.model`: internal persistence for the app’s last successfully saved provider/model choice. Use the in-app picker, not JSON editing. Saving does not establish account access.
 - `server.port`: localhost port, default 8142.
 
 Use a private `launch-control.local.config.json` with `npm start -- --config launch-control.local.config.json` when local paths should stay out of Git. Unknown configuration fields are rejected. Keep API keys in the process environment: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Never put credentials in either configuration file.
 
-Campaign selection precedence: `--campaign` → `LAUNCH_CAMPAIGN_DIR` → config. Command-line and environment paths resolve from the current shell directory. `LAUNCH_AI_PROVIDER`, the selected provider’s `OPENAI_MODEL` or `ANTHROPIC_MODEL`, and `PORT` override config. A different campaign override drops the config’s company theme and uses Campaign Control defaults. Select a custom config to pair that campaign with its own `campaign.brand`. Restart after config or identity changes. A provider override uses that provider’s default model unless its own model environment variable is set. See [provider behavior](profound.md).
+Campaign selection precedence: `--campaign` → `LAUNCH_CAMPAIGN_DIR` → config. Command-line and environment paths resolve from the current shell directory. `PORT` still overrides the configured port. A different campaign override drops the config’s company theme and uses Campaign Control defaults. Select a custom config to pair that campaign with its own `campaign.brand`. Restart after campaign, server or identity changes; saving AI selection needs no restart.
+
+**Compatibility change, October 7:** saved app AI settings now take precedence. `LAUNCH_AI_PROVIDER`, `OPENAI_MODEL`, and `ANTHROPIC_MODEL` no longer select models, including in `scripts/check-ai.mjs`; startup and settings show their names as ignored, never their values. Credentials, `--config`, campaign overrides, `PORT`, `LAUNCH_AI_BATCH_SIZE`, `LAUNCH_AI_CONCURRENCY`, and `LAUNCH_AI_TIMEOUT_MS` remain supported. Provider/model arguments are passed explicitly to adapters; the app does not mutate the process environment.
+
+**Save/Cancel:** selecting a provider requires explicitly choosing one of its models. Save accepts only a catalog provider/model pair, atomically replaces the active config (following a config symlink), and retains other configuration values. Failure keeps the previous file and selection. Concurrent saves and runs share a lock. Cancel closes settings without saving. An unconfigured provider can be saved; its server credential is required before any run starts. An unlisted saved identifier stays visible and is never silently replaced.
+
+**Run identity:** a new run resolves its saved choice to a concrete ID and records the catalog version before its first model request. Later corrections, checks, and restarts use that ID even when the picker or catalog changes. Request-level returned IDs remain evidence. New runs include their model binding in candidate identity; legacy hashes are not migrated. Ambiguous legacy provenance blocks further AI operations without invalidating otherwise-valid viewing, human review, approval, or downloads. A missing credential for a previous version requires that version’s provider credential, not a fallback.
+
+See [verified model catalog and pricing](ai-models.md) and [provider behavior](profound.md).
 
 ## Map existing files
 

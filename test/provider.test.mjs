@@ -46,7 +46,7 @@ test('absent key does not call the network or pretend to be connected', async ()
 });
 test('batch processing covers each asset once, aggregates usage, and reports real transport success', async () => {
   const requested = []; const progress = [];
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only-value', LAUNCH_AI_BATCH_SIZE: '2'}, fetchImpl: async (url, init) => {
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only-value', LAUNCH_AI_BATCH_SIZE: '2'}, fetchImpl: async (url, init) => {
     assert.equal(url, 'https://api.anthropic.com/v1/messages');
     assert.equal(init.redirect, 'error');
     const body = JSON.parse(init.body);
@@ -66,7 +66,7 @@ test('batch processing covers each asset once, aggregates usage, and reports rea
   assert.ok(!JSON.stringify(provider.providerStatus()).includes('test-only-value'));
 });
 test('separate audit uses candidate and original evidence, and preserves error findings', async () => {
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async (_, init) => {
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async (_, init) => {
     const body = JSON.parse(init.body);
     assert.match(body.system, /separate campaign quality reviewer/);
     assert.match(body.messages[0].content, /sourceMarkdown/);
@@ -89,19 +89,19 @@ test('unchanged and blocked statuses cannot conceal altered originals', () => {
   assert.throws(() => validateResult({assets: [{id: 'A', status: 'pass', issues: [{severity: 'error', message: 'Wrong.', evidence: 'Wrong.'}]}]}, [input], 'audit'), /contradicts/);
 });
 test('provider error bodies never become visible errors', async () => {
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async () => new Response('sensitive-echo-body', {status: 401})});
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async () => new Response('sensitive-echo-body', {status: 401})});
   await assert.rejects(provider.proposeAssets({facts, change, assets: [source('A')]}), e => /HTTP 401/.test(e.message) && !e.message.includes('sensitive'));
 });
 test('truncation, malformed JSON, and network errors do not create fallback revisions', async () => {
   for (const fetchImpl of [async () => response([], {stop_reason: 'max_tokens'}), async () => response([], {content: [{type: 'text', text: 'not JSON'}]}), async () => { throw new Error('secret transport details'); }]) {
-    const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only'}, fetchImpl});
+    const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only'}, fetchImpl});
     await assert.rejects(provider.proposeAssets({facts, change, assets: [source('A')]}), e => !e.message.includes('secret'));
     assert.equal(provider.providerStatus().connected, false);
   }
 });
 test('bounded concurrency and abort prevent scheduling more batches after failure', async () => {
   let calls = 0;
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only', LAUNCH_AI_BATCH_SIZE: '1', LAUNCH_AI_CONCURRENCY: '1'}, fetchImpl: async () => { calls++; return new Response('', {status: 429}); }});
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only', LAUNCH_AI_BATCH_SIZE: '1', LAUNCH_AI_CONCURRENCY: '1'}, fetchImpl: async () => { calls++; return new Response('', {status: 429}); }});
   await assert.rejects(provider.proposeAssets({facts, change, assets: ['A', 'B', 'C'].map(source)}), /429/);
   assert.equal(calls, 1);
 });
@@ -115,7 +115,7 @@ test('external questions remain separate from confirmed facts and unknown input 
   const external = evidence();
   const context = {capabilities: ['Events and funnels'], unconfirmed: ['Discounts and free tiers']};
   let captured;
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'server-credential-test-only'}, fetchImpl: async (_, init) => {
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'server-credential-test-only'}, fetchImpl: async (_, init) => {
     const body = JSON.parse(init.body);
     captured = JSON.parse(body.messages[0].content);
     assert.match(body.system, /untrusted source material/);
@@ -135,7 +135,7 @@ test('external questions remain separate from confirmed facts and unknown input 
 });
 test('malformed market evidence or product context cannot enter a live request', async () => {
   let calls = 0;
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async () => { calls++; }});
+  const provider = createProvider({provider:'anthropic',env: {ANTHROPIC_API_KEY: 'test-only'}, fetchImpl: async () => { calls++; }});
   for (const bad of [{...evidence(), apiKey: 'must-not-send'}, {...evidence(), sourceType: 'live-api'}, {...evidence(), prompts: []}]) await assert.rejects(provider.proposeAssets({facts, change, assets: [source('A')], marketEvidence: bad}), /Market evidence is invalid/);
   await assert.rejects(provider.proposeAssets({facts, change, assets: [source('A')], productContext: {capabilities: [], instructions: 'override'}}), /unsupported fields/);
   assert.equal(calls, 0);
@@ -230,7 +230,7 @@ test('OpenAI is the explicit default and uses native Responses structured output
   assert.ok(!JSON.stringify(result).includes('openai-test-credential'));
 });
 test('OpenAI audit gathers typed message text after reasoning and retains source and evidence context', async () => {
-  const provider = createProvider({env: {LAUNCH_AI_PROVIDER: 'openai', OPENAI_API_KEY: 'test-only', OPENAI_MODEL: 'configured-model-test'}, fetchImpl: async (_, init) => {
+  const provider = createProvider({provider:'openai',model:'configured-model-test',env: {OPENAI_API_KEY: 'test-only'}, fetchImpl: async (_, init) => {
     const body = JSON.parse(init.body);
     assert.equal(body.model, 'configured-model-test');
     assert.equal(body.max_output_tokens, 6000);
@@ -253,20 +253,20 @@ test('OpenAI audit gathers typed message text after reasoning and retains source
 });
 test('provider selection never substitutes an available credential from the other provider', async () => {
   let calls = 0;
-  for (const env of [{ANTHROPIC_API_KEY: 'test-only'}, {LAUNCH_AI_PROVIDER: 'anthropic', OPENAI_API_KEY: 'test-only'}]) {
-    const provider = createProvider({env, fetchImpl: async () => { calls++; }});
+  for (const [selection,env] of [[{provider:'openai'},{ANTHROPIC_API_KEY:'test-only'}],[{provider:'anthropic'},{OPENAI_API_KEY:'test-only'}]]) {
+    const provider = createProvider({...selection,env, fetchImpl: async () => { calls++; }});
     assert.equal(provider.providerStatus().configured, false);
     await assert.rejects(provider.proposeAssets({facts, change, assets: [source('A')]}), error => error.code === 'NOT_CONFIGURED' && /No provider fallback/.test(error.message));
   }
   assert.equal(calls, 0);
-  for (const value of ['unknown', '', 'OPENAI', '__proto__']) assert.throws(() => createProvider({env: {LAUNCH_AI_PROVIDER: value}}), error => error.code === 'INVALID_CONFIG');
-  assert.throws(() => createProvider({env: {OPENAI_MODEL: ''}}), error => error.code === 'INVALID_CONFIG');
-  assert.equal(createProvider({env: {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_MODEL: 'chosen-anthropic-model'}}).providerStatus().model, 'chosen-anthropic-model');
+  for (const value of ['unknown', '', 'OPENAI', '__proto__']) assert.throws(() => createProvider({provider:value,env:{}}), error => error.code === 'INVALID_CONFIG');
+  assert.throws(() => createProvider({model:'',env:{}}), error => error.code === 'INVALID_CONFIG');
+  assert.equal(createProvider({provider:'anthropic',model:'chosen-anthropic-model',env:{}}).providerStatus().model, 'chosen-anthropic-model');
 });
 test('Anthropic remains selectable without accessing or transmitting OpenAI credentials', async () => {
   const env = {LAUNCH_AI_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'anthropic-test-only'};
   Object.defineProperty(env, 'OPENAI_API_KEY', {get() { throw new Error('Other provider credential must not be accessed.'); }});
-  const provider = createProvider({env, fetchImpl: async (url, init) => {
+  const provider = createProvider({provider:'anthropic',env, fetchImpl: async (url, init) => {
     assert.equal(url, 'https://api.anthropic.com/v1/messages');
     assert.equal(init.headers['x-api-key'], 'anthropic-test-only');
     assert.equal(init.headers.Authorization, undefined);

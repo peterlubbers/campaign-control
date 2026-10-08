@@ -5,11 +5,11 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {LaunchEngine, WorkflowError, containedFile} from './lib/engine.mjs';
-import {createProvider} from './lib/provider.mjs';
+import {AISettings} from './lib/ai-settings.mjs';
 import {renderAsset} from './lib/render.mjs';
 import {BRAND, brandCSS, brandLogoSVG, loadBrand, brandHash} from './lib/brand.mjs';
 import {profoundStatus, fetchCitationEvidence, ProfoundError} from './lib/profound.mjs';
-import {loadConfiguration, applyModelConfiguration} from './lib/config.mjs';
+import {loadConfiguration, SettingsError} from './lib/config.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.pdf':'application/pdf','.mp4':'video/mp4','.vtt':'text/vtt; charset=utf-8','.md':'text/plain; charset=utf-8','.txt':'text/plain; charset=utf-8','.json':'application/json; charset=utf-8','.gz':'application/gzip'};
@@ -56,15 +56,16 @@ async function serveFile(request, response, file, {artifact = false, download = 
   });
 }
 
-export async function createApplication({root = ROOT, campaignDir, brandPath = null, artifactDir = campaignDir, engine: suppliedEngine} = {}) {
+export async function createApplication({root = ROOT, campaignDir, brandPath = null, artifactDir = campaignDir, engine: suppliedEngine, config, aiSettings: suppliedSettings} = {}) {
   if (!campaignDir && !suppliedEngine) throw new Error('Select a campaign folder with --campaign /path/to/campaign or LAUNCH_CAMPAIGN_DIR.');
   const brand = await loadBrand(brandPath);
-  const engine = suppliedEngine || new LaunchEngine({root,campaignDir,artifactDir,provider:createProvider(),renderAsset: input => renderAsset({...input,brand}),brandIdentitySha256:brandHash(brand)});
+  const aiSettings = suppliedSettings || (suppliedEngine ? suppliedEngine.aiSettings : new AISettings({config:config || await loadConfiguration({root})}));
+  const engine = suppliedEngine || new LaunchEngine({root,campaignDir,artifactDir,provider:aiSettings,aiSettings,renderAsset: input => renderAsset({...input,brand}),brandIdentitySha256:brandHash(brand)});
   if (!suppliedEngine) engine.allowDemoReset = await fs.realpath(campaignDir) === await fs.realpath(path.join(ROOT,'fictitious-ai/campaigns/pro500')) && path.resolve(artifactDir) === path.resolve(campaignDir);
   await engine.initialize();
   const csrfToken = randomBytes(32).toString('hex');
   let profoundEvidence = null;
-  const state = () => ({...engine.state(),capabilities:{assetRevision:true,assetResolution:true,demoReset:engine.allowDemoReset},branding:{company:brand.company.name,custom:Boolean(brandPath)},csrfToken,profound:{...profoundStatus(),evidence:profoundEvidence}});
+  const state = () => ({...engine.state(),aiSettings:aiSettings?.state() || null,versionProvider:aiSettings?.versionStatus(engine.run) || null,capabilities:{aiSettings:Boolean(aiSettings),assetRevision:true,assetResolution:true,demoReset:engine.allowDemoReset},branding:{company:brand.company.name,custom:Boolean(brandPath)},csrfToken,profound:{...profoundStatus(),evidence:profoundEvidence}});
   const server = http.createServer(async (request,response) => {
     response.setHeader('Cache-Control','no-store');
     response.setHeader('X-Content-Type-Options','nosniff');
@@ -85,6 +86,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
         const actual = Buffer.from(request.headers['x-launch-control-token'] || ''); const expected = Buffer.from(csrfToken);
         if (actual.length !== expected.length || !timingSafeEqual(actual,expected)) throw new WorkflowError('Refresh the workbench before making changes.',403);
         const input = await body(request);
+        if (pathname === '/api/settings/ai') {if (!aiSettings) throw new WorkflowError('Restart Campaign Control to enable AI settings.',503); await aiSettings.save(engine,input); return json(response,200,state());}
         if (pathname === '/api/campaign/open') {await engine.openCampaign(); return json(response,200,state());}
         if (pathname === '/api/inspect') {await engine.inspect(); return json(response,200,state());}
         if (pathname === '/api/revisions') {await engine.newRevision(); return json(response,200,state());}
@@ -135,7 +137,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
       await serveFile(request,response,await containedFile(path.join(root,'web'),webFile));
     } catch (error) {
       if (response.headersSent) {response.destroy(); return;}
-      const expected = error instanceof WorkflowError || error instanceof ProfoundError;
+      const expected = error instanceof WorkflowError || error instanceof ProfoundError || error instanceof SettingsError;
       const status = error.status || (expected ? 409 : error.code === 'ENOENT' ? 404 : 500);
       json(response,status,{error:expected ? error.message : status === 404 ? 'File not found.' : 'The operation failed. Existing inputs were preserved; check the current run for details.'});
     }
@@ -156,8 +158,8 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const config = await loadConfiguration({root: ROOT, args: process.argv.slice(2)});
-  applyModelConfiguration(config);
   const {port} = config;
-  const {server} = await createApplication({campaignDir: config.campaignDir, brandPath: config.brandPath});
+  if (config.ignoredModelOverrides.length) process.stdout.write(`Model environment overrides ignored: ${config.ignoredModelOverrides.join(', ')}. Choose the model in the app.\n`);
+  const {server} = await createApplication({campaignDir: config.campaignDir, brandPath: config.brandPath,config});
   server.listen(port,'127.0.0.1',() => process.stdout.write(`Campaign Control is ready at http://127.0.0.1:${port}\n`));
 }
