@@ -4,7 +4,7 @@ One `campaign-control/` package contains the tool and the Fictitious AI example.
 
 ## Configuration rules
 
-- `campaign.type`: `local` is implemented. `google-drive` is reserved and fails explicitly; no Drive access occurs.
+- `campaign.type`: `local` is the only implemented value here. A Drive campaign is **not** selected in this file; add it from the launch chooser, which records it in private application data. `google-drive` in this file fails with an explanatory error and performs no Drive access. [Google Drive setup](google-drive-setup.md).
 - `campaign.path`: campaign directory containing `campaign.json`. Relative paths resolve beside the configuration file.
 - `campaign.brand`: optional company identity JSON, relative to the config file. Omit for Campaign Control defaults.
 - `ai.provider` and `ai.model`: internal persistence for the app’s last successfully saved provider/model choice. Use the in-app picker, not JSON editing. Saving does not establish account access.
@@ -58,3 +58,9 @@ The selected campaign needs write access for `working/`, `releases/`, `.campaign
 `READY-TO-PUBLISH` is a local directory symlink to `releases/vNNN`, created only after exact-content approval and final checks. A new draft or detected input/output drift removes that shortcut. Retained release folders are history, not a statement of current readiness. The app verifies files on startup, state reads, and downloads, with a local watcher while running. It cannot monitor changes while closed or continuously verify a remote Google Slides link.
 
 The download archive and approved source snapshot remain private in `.campaign-control/`; the archive contains only publisher files. Hidden state is needed to continue approval history and the approved baseline across restarts, so retain it in your private workspace backup. It is not part of the distributable example.
+
+## Launches and Drive credentials
+
+Launches are not configuration-file entries. The chooser lists every launch in the workspace: the default local launch, local campaigns added there, and Google Drive campaigns. Launch records live in the private application data directory (`CAMPAIGN_CONTROL_DATA_DIR`, else `$XDG_DATA_HOME/campaign-control`, else `~/.local/share/campaign-control`) as atomic `0600` JSON inside `0700` directories. Connection tokens live there too and never in this package.
+
+Google credentials follow the same rule as provider keys: process environment only. `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are required for a Drive launch, and `GOOGLE_REDIRECT_URI` defaults to `http://127.0.0.1:8142/oauth/google/callback` on a registered `127.0.0.1`, `localhost`, or `[::1]` callback path. Never put them in either configuration file. A Drive snapshot is a read-only copy: the campaign folder in Drive is never written to, and each launch keeps its own snapshot, artifacts, state, and drafts. See [Google Drive setup](google-drive-setup.md).

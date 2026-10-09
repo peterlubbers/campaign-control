@@ -46,10 +46,10 @@ test('saved selection ignores model overrides without mutating environment value
   assert.equal(saved.model, 'test-openai');
 });
 
-test('Drive configuration fails honestly without attempting a connector; local override works', async t => {
+test('Drive configuration fails honestly and points at the chooser; local override works', async t => {
   const {root, config, write} = await fixture(t);
   await write({...config, campaign: {type: 'google-drive', folderId: 'test-only'}});
-  await assert.rejects(() => loadConfiguration({root, env: {}}), /planned connector, not implemented/);
+  await assert.rejects(() => loadConfiguration({root, env: {}}), /connected from the launch chooser/);
   assert.equal((await loadConfiguration({root, cwd: root, env: {}, args: ['--campaign', './local']})).campaignDir, path.join(root, 'local'));
 });
 

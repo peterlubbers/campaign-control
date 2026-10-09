@@ -15,6 +15,30 @@
   <nav aria-label="Location and mode"><span id="location-label">Campaign workspace</span><span class="local-label">LOCAL</span><button id="ai-settings-button" class="text-button" type="button" disabled>AI settings</button><label class="demo-toggle" for="demo-mode"><input id="demo-mode" type="checkbox" role="switch" aria-describedby="demo-mode-help" disabled><span class="toggle-track" aria-hidden="true"></span><span>Demo mode</span></label><span id="demo-mode-help" class="sr-only">On limits the next update to four demo assets and their publisher files. Off processes the full campaign. The release-scope panel shows the exact asset counts before an update starts. Mode cannot change during a run or while reviewing its results.</span></nav>
 </header>
 <main id="main" tabindex="-1">
+  <section id="chooser-view" class="view" hidden aria-labelledby="chooser-heading">
+    <div class="home-intro"><h1>Campaign<br><span>launches.</span></h1><p class="lede">One workspace. Every campaign isolated.</p></div>
+    <div class="section-heading"><h2 id="chooser-heading">Your launches <span id="launch-count" class="count">0</span></h2><span id="chooser-lock" class="status-pill" hidden></span></div>
+    <div id="chooser-notice" class="notice" hidden></div>
+    <div id="launch-cards" class="launch-grid"></div>
+    <div class="section-heading"><h2>Add a launch</h2></div>
+    <div class="launch-add panel">
+      <p class="eyebrow">GOOGLE DRIVE</p>
+      <h2>Connect a Google Drive campaign.</h2>
+      <p class="muted">The campaign stays in Drive. Campaign Control reads it with a recorded private snapshot, and your review work stays separate per launch.</p>
+      <p id="google-scope-note" class="help">Google consent uses the read-only Drive scope, which can read all Drive files available to your account. Campaign Control itself only reads inside the campaign folder you choose. Disconnect any time to revoke access.</p>
+      <button id="google-start" class="primary" type="button"><span id="google-start-label">Connect Google Drive</span> <span aria-hidden="true">→</span></button>
+      <form id="drive-launch-form" hidden>
+        <label for="drive-folder">Google Drive campaign folder</label>
+        <p id="drive-folder-help" class="help">Paste the folder ID or full URL of the Drive folder that holds campaign.json.</p>
+        <input id="drive-folder" name="drive-folder" autocomplete="off" spellcheck="false" maxlength="2048" aria-describedby="drive-folder-help" placeholder="https://drive.google.com/drive/folders/…">
+        <p id="connect-status" class="help" role="status" hidden></p>
+        <div class="reset-dialog-actions">
+          <button id="cancel-drive-launch" class="secondary" type="button">Cancel</button>
+          <button id="add-drive-launch" class="primary" type="submit">Add Google Drive launch</button>
+        </div>
+      </form>
+    </div>
+  </section>
   <section id="home-view" class="view">
     <div class="home-intro"><h1>Agentic campaign<br><span>updates.</span></h1><p class="lede">Inhuman scale. Human control.</p></div>
     <div class="section-heading"><h2>Active campaigns <span class="count">1</span></h2></div>
@@ -25,6 +49,7 @@
   <section id="dashboard-view" class="view" hidden aria-labelledby="dashboard-heading">
     <div class="page-heading"><div><p id="workspace-eyebrow" class="eyebrow">CAMPAIGN</p><h1 id="dashboard-heading">Pro500</h1></div><span id="readiness" class="status-pill launch-readiness">Checking inventory</span></div>
     <div class="stats-strip"><div><strong id="asset-count">104</strong><span>campaign assets</span></div><div><strong id="channel-count">11</strong><span>channels</span></div><button id="browse-button" class="text-button">Browse assets <span aria-hidden="true">↗</span></button></div>
+    <div id="lock-banner" class="notice" hidden></div>
     <div id="resume-banner" class="notice" hidden></div>
     <section id="campaign-updates" class="campaign-updates" aria-labelledby="updates-heading">
     <div class="update-entry"><div><h2 id="updates-heading">Campaign updates</h2><p class="muted">Prepare a new version for review.</p></div><button id="toggle-update" class="primary" type="button" aria-expanded="false" aria-controls="update-editor">Make an update</button></div>
@@ -41,6 +66,7 @@
 <div id="message" class="toast" role="alert" hidden></div>
 <dialog id="ai-settings-dialog" aria-labelledby="ai-settings-heading"><form id="ai-settings-form"><p class="eyebrow">NEXT UPDATE’S MODEL</p><h2 id="ai-settings-heading">Choose your AI model.</h2><p id="ai-saved-selection" class="help"></p><p id="ai-version-selection" class="help" hidden></p><p id="ai-settings-notice" class="notice" hidden></p><label for="ai-provider">Provider</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select><fieldset id="ai-model-choices"><legend>Model</legend><div id="ai-model-list"></div></fieldset><p id="ai-credential-status" class="help" role="status"></p><p id="ai-settings-lock" class="help" role="status" hidden>Wait for processing to finish before changing the selection.</p><p id="ai-settings-error" class="danger" role="alert" hidden></p><details class="evidence-details"><summary>Model details and maintenance</summary><div id="ai-catalog-details"></div></details><div class="reset-dialog-actions"><button id="cancel-ai-settings" class="secondary" type="button">Cancel</button><button id="save-ai-settings" class="primary" type="submit" disabled>Save selection</button></div></form></dialog>
 <dialog id="resolution-dialog" aria-labelledby="resolution-heading" aria-describedby="resolution-description"><form id="resolution-form"><p class="eyebrow">HUMAN CONTROL</p><h2 id="resolution-heading"></h2><p id="resolution-description"></p><label for="resolution-reviewer">Your name</label><input id="resolution-reviewer" maxlength="120" required autocomplete="name"><label for="resolution-reason">Reason for this decision</label><textarea id="resolution-reason" rows="3" maxlength="2000" required placeholder="Explain why this is the right choice for this release."></textarea><p id="resolution-error" class="danger" role="alert" hidden></p><div class="reset-dialog-actions"><button id="cancel-resolution" class="secondary" type="button">Cancel</button><button id="submit-resolution" class="primary" type="submit"></button></div></form></dialog>
-<dialog id="reset-demo-dialog" aria-labelledby="reset-demo-heading" aria-describedby="reset-demo-description"><p class="eyebrow">FRESH START</p><h2 id="reset-demo-heading">Reset the demo?</h2><p id="reset-demo-description">Return to the original Pro500 campaign. Generated versions, releases, approvals, and review history move to a private local archive. Original assets, brand files, and model configuration stay intact.</p><p class="muted">The next update starts at v001. Demo mode returns to its fresh-session default: on.</p><div class="reset-dialog-actions"><button id="cancel-reset-demo" class="secondary" autofocus>Keep current work</button><button id="confirm-reset-demo" class="primary">Archive & reset demo</button></div></dialog>
+<dialog id="reset-demo-dialog" aria-labelledby="reset-demo-heading" aria-describedby="reset-demo-description"><p class="eyebrow">FRESH START</p><h2 id="reset-demo-heading">Reset this campaign workspace?</h2><p id="reset-demo-description">Return this launch to its original campaign. Generated versions, releases, approvals, and review history move to a private local archive. Original assets, brand files, and model configuration stay intact.</p><p class="muted">The next update starts at v001. For the bundled example, demo mode returns to its fresh-session default: on.</p><div class="reset-dialog-actions"><button id="cancel-reset-demo" class="secondary" autofocus>Keep current work</button><button id="confirm-reset-demo" class="primary">Archive & reset</button></div></dialog>
+<dialog id="disconnect-dialog" aria-labelledby="disconnect-heading" aria-describedby="disconnect-description"><p class="eyebrow">GOOGLE DRIVE</p><h2 id="disconnect-heading">Disconnect Google Drive?</h2><p id="disconnect-description">This revokes Campaign Control's Google access on this server and disconnects every launch that uses this connection. Recorded work is preserved; snapshots stop updating until you reconnect and refresh.</p><div class="reset-dialog-actions"><button id="cancel-disconnect" class="secondary" autofocus>Keep connection</button><button id="confirm-disconnect" class="primary">Disconnect</button></div></dialog>
 <dialog id="library" aria-labelledby="library-heading"><div class="dialog-heading"><div><p class="eyebrow">CAMPAIGN LIBRARY</p><h2 id="library-heading">Every asset, in reach.</h2></div><button id="close-library" class="secondary">Close</button></div><div class="library-filters"><label for="asset-search" class="sr-only">Search assets</label><input id="asset-search" type="search" placeholder="Search by title, ID, or channel"><label for="channel-filter" class="sr-only">Filter by channel</label><select id="channel-filter"><option value="">All channels</option></select><label for="asset-status-filter" class="sr-only">Filter by review status</label><select id="asset-status-filter"><option value="">All campaign assets</option><option value="included">Included in this version</option><option value="attention">Needs attention</option></select></div><div id="library-detail" hidden></div><div id="library-list"></div></dialog>
 </body></html>

@@ -224,7 +224,7 @@ test('reset returns the workbench to the fresh-session demo default', async () =
   assert.equal(nodes.get('demo-mode').checked,true);
   assert.equal(nodes.get('reset-demo-dialog').open,false);
   assert.equal(nodes.get('message').hidden,false);
-  assert.match(nodes.get('message').textContent,/Demo reset/);
+  assert.match(nodes.get('message').textContent,/Reset complete/);
 });
 
 test('candidate edits survive re-renders, polling, and asset navigation', async () => {
@@ -254,7 +254,7 @@ test('unsaved candidate edits are identified and gate review and approval until 
   run("state.run.reviews['SAL-004']={candidateHash:'synthetic-hash'};$('confirm-facts').checked=true;$('reviewer').value='Reviewer';renderReview();");
   assert.equal(nodes.get('approve-button').disabled,false,'With everything recorded, approval is available');
   // A draft on one included asset gates the whole approval.
-  run("candidateDrafts.set('synthetic-run:WEB002',{candidateHash:'synthetic-hash',text:'A different correction'});renderReview(true);");
+  run("candidateDrafts.set(candidateDraftKey('synthetic-run','WEB002'),{candidateHash:'synthetic-hash',text:'A different correction'});renderReview(true);");
   assert.equal(nodes.get('approve-button').disabled,true,'An unsaved edit on any included asset blocks approval');
   assert.match(nodes.get('approval-readiness').textContent,/Save or discard unsaved candidate edits on WEB002/);
   assert.match(nodes.get('review-cards').innerHTML,/✎ Unsaved edits/);

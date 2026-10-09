@@ -5,7 +5,7 @@
 **Agentic campaign updates.**<br>
 **Inhuman scale. Human control.**
 
-A reusable campaign workbench: connect a campaign folder, describe a product change, review AI revisions and checks, then approve an exact version for the publishing team. Publishing stays with people.
+A reusable campaign workbench: connect a campaign folder, describe a product change, review AI revisions and checks, then approve an exact version for the publishing team. Publishing stays with people. A campaign folder can be local or a **Google Drive** folder, read through a verified private snapshot.
 
 Built at the **Profound Marketing Engineering Hackathon**.
 
@@ -34,6 +34,8 @@ campaign-control/
 
 `*` Created by the workflow. Private state and approval history stay in the campaign’s hidden `.campaign-control/` folder. The example media ships with the package; working versions, releases, private state, and readiness shortcuts are excluded from Git.
 
+The homepage is a **launch chooser**. A launch is one campaign identity in one workspace: the bundled local folder, your own local folder, or a Google Drive folder. Launch records, connection tokens, and Drive snapshots live outside the package in this machine’s private application data (`$XDG_DATA_HOME/campaign-control`, `~/.local/share/campaign-control`, or `CAMPAIGN_CONTROL_DATA_DIR`), so campaign folders and Drive originals are never modified. Each launch keeps its own artifacts, state, and unsaved drafts; one campaign update runs at a time per workspace.
+
 ## Run locally
 
 Requires **Node.js 22+**. Generating new videos or PDF collateral also requires **macOS and Swift/Xcode Command Line Tools**; the included MP4s and PDF are already rendered. No additional PDF package is needed.
@@ -52,7 +54,7 @@ npm start -- --campaign "/path/to/your/campaign"
 
 That folder needs a `campaign.json` inventory mapping its current files. Editable sources are optional in the inventory; revising a required asset still needs a supported Markdown/plain-text source and renderer. Unsupported assets remain visible and block release. [Campaign mapping and configuration](docs/configuration.md).
 
-OpenAI is the shipped default; Anthropic is also supported. **Google Drive is a planned connector.** Selecting it currently returns a clear error. [Drive design](docs/google-drive-design.md).
+OpenAI is the shipped default; Anthropic is also supported. **Google Drive is implemented.** Connect a Drive folder from the launch chooser with a read-only grant; Campaign Control records a verified private snapshot and leaves the Drive folder untouched. Setup is one OAuth client plus `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the server environment (a third variable only if the port or host differs). [Google Drive setup](docs/google-drive-setup.md) · [Operating design](docs/google-drive-design.md).
 
 ### Model selection and existing versions
 
@@ -66,7 +68,7 @@ The six-model catalog was checked against official documentation on **October 7,
 
 ## Draft → review → ready to publish
 
-1. Open **Campaign Control**, choose **Pro500**, and let it check the existing inventory. The dashboard shows campaign readiness and counts; **Browse assets** opens all 104 assets.
+1. Open **Campaign Control** and choose a launch: the bundled **Pro500** folder, your own local campaign folder, or a connected **Google Drive** folder. Campaign Control then checks the existing inventory and opens the dashboard with campaign readiness and counts; **Browse assets** opens all 104 assets.
 2. Choose **Make an update** below the divider to reveal Maya’s preloaded, editable brief and release scope. Opening or hiding the brief makes no AI request and preserves your edits. That exact text goes to AI only when you choose **Update campaign**; AI interprets the requested facts before revising anything. Ambiguities stop the run.
 3. **Demo mode**, beside **Local** in the header, defaults to on for fresh sessions of the bundled example: the next update covers four demo assets and their publisher files — website WEB002, video VID-001, social SOC-001, and sales SAL-004 — while the other 100 assets stay unchanged. The release-scope panel shows the exact split, "4 demo assets of 104," before you start. Switch it off to process the full 104-asset campaign; the panel then shows all 104 assets. The switch selects only the next update and never changes an existing version's recorded scope.
 4. **Update campaign** creates `working/v001/`. Watch actual proposal, output, and audit counts plus processing time. Timing includes interpretation and corrections, excludes human review, and remains visible with the results.
@@ -77,7 +79,7 @@ Releases contain finished copy/media, metadata, captions, thumbnails, and an app
 
 Asset feedback supports copy, publisher metadata, and the category label above ordinary HTML copy previews. For example: “Remove the duplicate SALES entry in the preview category label. Keep the rest unchanged.” That label belongs to the review preview, not the publisher's Markdown. Unsupported layout, footage, or native Slides requests remain blocked. **Reject version** records a rejection of the entire version; it does not send an asset correction to AI. The UI calls the included silent animated MP4s **Motion assets**; their inventory channel remains `video`.
 
-For a fresh rehearsal, select **Reset demo** in the footer and **Archive & reset demo**. The bundled example returns to the original Pro500 inventory: no active revision, review marks, approval, release download, or readiness shortcut. The next update starts at `v001`; the brief resets and Demo mode returns to its fresh-session default: on. Original sources/media, brand, model settings and server credentials are preserved. Generated work and previous state move to `.campaign-control/demo-archives/reset-001/` (then `reset-002`, etc.), excluded from Git and inaccessible through the app's artifact routes. This is a recoverable archive, not permanent deletion. The reset is unavailable during processing or for an external campaign folder. Restart the server after backend changes, then refresh the page to load the controls.
+For a fresh rehearsal, select **Reset** in the footer and **Archive & reset**. The reset applies only to the **launch you have open**; other launches keep their runs, review marks, and unsaved drafts. The bundled local example returns to the original Pro500 inventory: no active revision, review marks, approval, release download, or readiness shortcut. The next update starts at `v001`; the brief resets and Demo mode returns to its fresh-session default: on. Original sources/media, brand, model settings and server credentials are preserved. Generated work and previous state move to `.campaign-control/demo-archives/reset-001/` (then `reset-002`, etc.), excluded from Git and inaccessible through the app's artifact routes. This is a recoverable archive, not permanent deletion. The reset is unavailable during processing, while another launch is busy, or for an external campaign folder. Restart the server after backend changes, then refresh the page to load the controls.
 
 Starting another version clears current readiness and retains earlier releases. Full releases can become the next revision’s baseline; a partial release does not advance commercial facts across unrevised assets, so its next version starts from the campaign inputs. Input or output changes invalidate readiness when detected, on startup, and before download. Changes while the app is closed cannot clear a shortcut until it runs again.
 
@@ -106,11 +108,11 @@ Costs are operator-reported billing observations, not instrumented per-run charg
 
 Run `npm test` for the automated checks. They use isolated synthetic providers and temporary campaigns, not paid API calls. The live asset-specific feedback stage still needs a separate model rehearsal; its software contracts are covered by automated tests.
 
-**Implemented:** local campaign inventories, OpenAI/Anthropic adapters, bounded parallel calls, editable briefs, text and publisher-metadata revisions, native output generation, independent audits, asset feedback, human overrides/exclusions, and approval bound to exact files.
+**Implemented:** local campaign inventories, Google Drive launches (read-only OAuth, verified private snapshots, drift detection, refresh, disconnect), a launch chooser with per-launch isolation and one-update-at-a-time processing, durable restart-safe jobs, OpenAI/Anthropic adapters, bounded parallel calls, editable briefs, text and publisher-metadata revisions, native output generation, independent audits, asset feedback, human overrides/exclusions, and approval bound to exact files.
 
-**Planned:** Google Drive, Slack and Notion connectors; additional provider adapters; dedicated autonomous subagents. The architecture illustration includes planned connections. The Profound API adapter is optional and has not been verified against a live account; the hackathon evidence was observed manually.
+**Planned:** Slack and Notion connectors; additional provider adapters; dedicated autonomous subagents; hosted multi-user workspaces and Drive folder discovery. The architecture illustration includes planned connections. The Profound API adapter is optional and has not been verified against a live account; the hackathon evidence was observed manually.
 
-[Configuration](docs/configuration.md) · [Media formats](docs/media.md) · [Measurement plan](docs/campaign-scale-research.md) · [Public package and authorship](docs/public-package.md) · [Presentation](presentation/README.md)
+[Configuration](docs/configuration.md) · [Google Drive setup](docs/google-drive-setup.md) · [Media formats](docs/media.md) · [Measurement plan](docs/campaign-scale-research.md) · [Public package and authorship](docs/public-package.md) · [Presentation](presentation/README.md)
 
 ## License
 
