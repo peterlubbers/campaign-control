@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "EML001",
+  "channel": "email",
+  "sourceSha256": "61c742428ea95b7edbf9d72c61fbe9a490fa77e61bf9febe5f0bc67e178e01e3",
+  "handoffState": "unpublished",
+  "fields": {
+    "subject": "A clearer product question with Fictitious AI Pro500",
+    "preheader": "Explore product analytics for $500/month, with sharing for up to five teammates.",
+    "sender_name": "Fictitious AI Team"
+  }
+}

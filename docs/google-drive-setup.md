@@ -93,6 +93,8 @@ Drive content is copied into the launch’s private snapshot directory under the
 
 ## Demo scope for the bundled example
 
+For a faster connection test, upload [`fictitious-ai/campaigns/pro500-lite/`](../fictitious-ai/campaigns/pro500-lite/README.md): a self-contained three-asset campaign with 18 shipped files (17 snapshot inputs). It uses website, email, and sales copy without video or PDF rendering. It runs in full-campaign mode for those three assets, not the 104-asset sample's four-asset Demo mode. Keep the folder structure and choose its manifest-containing root.
+
 Demo scope (four assets of 104) applies only when the snapshot fingerprints as the **exact bundled 104-asset sample campaign**. Any other Drive folder always runs in full-campaign mode, and the release-scope panel states which applies before you start. Demo scope never changes an existing version’s recorded scope, and a demo release never counts as full-campaign approval.
 
 To rehearse the Drive path with the bundled example, prepare a Drive-ready copy:

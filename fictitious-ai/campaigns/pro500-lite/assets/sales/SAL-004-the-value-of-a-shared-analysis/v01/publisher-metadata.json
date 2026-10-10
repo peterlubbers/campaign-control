@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "assetId": "SAL-004",
+  "channel": "sales",
+  "sourceSha256": "57bcab9c7d740086d9068ca5e5a32d1e5165ae3a45125c8819d114e454a5f60f",
+  "handoffState": "unpublished",
+  "fields": {
+    "document_title": "The value of a shared analysis | Fictitious AI",
+    "audience": "Analytics leaders coordinating reviewers",
+    "distribution_instruction": "Unpublished fictional sales material. Human owner selects recipients and verifies the offer before distribution."
+  }
+}

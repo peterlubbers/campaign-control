@@ -72,6 +72,21 @@ test('the manager registers the local launch in the workspace without Drive cred
   assert.equal(engine.state().evidence.registered, 1);
 });
 
+test('Pro500 Lite connects as three assets and 17 snapshot files without large-sample demo scope', async t => {
+  const lite = path.join(REPO,'fictitious-ai/campaigns/pro500-lite');
+  const drive = await fakeDriveFromCampaign(lite, {brandPath:path.join(lite,'brand/identity.json')});
+  const {manager,connect} = await managerFixture(t,{drive});
+  const result = await manager.addDriveLaunch({folderId:drive.rootId,connectionId:await connect()});
+  assert.equal(result.launch.snapshot.files.length,17);
+  assert.equal(result.launch.sampleMatch,false);
+  const engine = await manager.engine(result.launch.id);
+  const state = engine.state();
+  assert.equal(state.campaign.id,'pro500-lite');
+  assert.equal(state.evidence.registered,3);
+  assert.equal(state.evidence.blocked,0);
+  assert.equal(engine.isSampleCampaign,false);
+});
+
 test('a connected Drive launch reaches 104-asset parity with the bundled sample and demo scope', async t => {
   const drive = await fakeDriveFromCampaign(BUNDLED, {brandPath:BUNDLED_BRAND});
   const {manager, connect} = await managerFixture(t, {drive});

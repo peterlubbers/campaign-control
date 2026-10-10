@@ -1,0 +1,35 @@
+{
+  "id": "industrial-blue",
+  "colors": {
+    "graphite": "#15212D",
+    "steel": "#273A4B",
+    "silver": "#CBD5E1",
+    "white": "#F2F6FA",
+    "muted": "#A7B7C9",
+    "blue": "#00B2FF"
+  },
+  "typography": {
+    "sans": "Arial, \"Helvetica Neue\", sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "videoRegular": "Arial",
+    "videoBold": "Arial-BoldMT"
+  },
+  "copy": {
+    "productName": "Launch Control",
+    "tagline": "Agentic campaign updates.",
+    "principle": "Inhuman scale. Human control."
+  },
+  "company": {
+    "name": "Fictitious AI",
+    "mark": "signal",
+    "logo": {
+      "viewBox": [0, 0, 40, 40],
+      "rects": [
+        {"x": 0, "y": 24, "width": 10, "height": 16},
+        {"x": 15, "y": 12, "width": 10, "height": 28},
+        {"x": 30, "y": 12, "width": 10, "height": 28},
+        {"x": 30, "y": 0, "width": 10, "height": 8}
+      ]
+    }
+  }
+}

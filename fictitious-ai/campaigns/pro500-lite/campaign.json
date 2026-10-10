@@ -1,0 +1,185 @@
+{
+  "id": "pro500-lite",
+  "name": "Fictitious AI | Pro500 Lite",
+  "description": "Three text-based deliverables across website, email, and sales for faster local and read-only Drive integration testing. An intentionally small standalone campaign, not full Pro500 coverage.",
+  "provenance": {
+    "source": "Unmodified original WEB002, EML001, and SAL-004 bundles from the bundled Pro500 campaign. The editable source in each bundle is used directly to avoid duplicate files.",
+    "aiGenerated": true,
+    "publicationStatus": "unpublished",
+    "countBasis": "Three editorial deliverables; companion files excluded."
+  },
+  "productContext": {
+    "company": "Fictitious AI",
+    "fictional": true,
+    "category": "AI-assisted product analytics SaaS",
+    "capabilities": [
+      "Event analysis",
+      "Funnels",
+      "Retention",
+      "Cohorts",
+      "Natural-language product questions reviewed by a human"
+    ],
+    "unconfirmed": [
+      "Event allowances",
+      "Annual discounts",
+      "Migration terms",
+      "Effective date",
+      "Security certifications",
+      "Performance claims",
+      "Session replay",
+      "Feature flags"
+    ]
+  },
+  "facts": {
+    "product": "Pro500",
+    "monthlyPrice": 500,
+    "sharing": true,
+    "maxTeammates": 5
+  },
+  "assets": [
+    {
+      "id": "WEB002",
+      "title": "Pro500 pricing",
+      "channel": "website",
+      "kind": "page",
+      "source": "assets/website/WEB002-pro500-pricing/v01/source.md",
+      "required": true,
+      "metadata": {
+        "brand": "Fictitious AI",
+        "categoryLabel": "Fictional product analytics SaaS",
+        "purpose": "State the exact current monthly offer and sharing allowance.",
+        "audience": "Evaluation owners",
+        "intentTags": [
+          "pricing",
+          "sharing",
+          "commercial-fit"
+        ],
+        "variantGroup": "core-pages",
+        "countRationale": "Dedicated commercial decision page, distinct from product education."
+      },
+      "files": [
+        {
+          "path": "assets/website/WEB002-pro500-pricing/v01/review.html",
+          "mime": "text/html",
+          "role": "review-preview"
+        },
+        {
+          "path": "assets/website/WEB002-pro500-pricing/v01/source.md",
+          "mime": "text/markdown",
+          "role": "editable-source"
+        },
+        {
+          "path": "assets/website/WEB002-pro500-pricing/v01/publisher-metadata.md",
+          "mime": "text/markdown",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/website/WEB002-pro500-pricing/v01/publisher-metadata.json",
+          "mime": "application/json",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/website/WEB002-pro500-pricing/v01/render-manifest.json",
+          "mime": "application/json",
+          "role": "render-evidence"
+        }
+      ]
+    },
+    {
+      "id": "EML001",
+      "title": "Start with the product decision",
+      "channel": "email",
+      "kind": "copy",
+      "source": "assets/email/EML001-start-with-the-product-decision/v01/source.md",
+      "required": true,
+      "metadata": {
+        "brand": "Fictitious AI",
+        "categoryLabel": "Fictional product analytics SaaS",
+        "purpose": "Introduce product analytics through a roadmap decision.",
+        "audience": "Product managers",
+        "intentTags": [
+          "product-analytics",
+          "decision-framing"
+        ],
+        "variantGroup": "email-awareness",
+        "countRationale": "Roadmap-oriented awareness email with a behavior-to-decision narrative."
+      },
+      "files": [
+        {
+          "path": "assets/email/EML001-start-with-the-product-decision/v01/review.html",
+          "mime": "text/html",
+          "role": "review-preview"
+        },
+        {
+          "path": "assets/email/EML001-start-with-the-product-decision/v01/source.md",
+          "mime": "text/markdown",
+          "role": "editable-source"
+        },
+        {
+          "path": "assets/email/EML001-start-with-the-product-decision/v01/publisher-metadata.md",
+          "mime": "text/markdown",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/email/EML001-start-with-the-product-decision/v01/publisher-metadata.json",
+          "mime": "application/json",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/email/EML001-start-with-the-product-decision/v01/render-manifest.json",
+          "mime": "application/json",
+          "role": "render-evidence"
+        }
+      ]
+    },
+    {
+      "id": "SAL-004",
+      "title": "The value of a shared analysis",
+      "channel": "sales",
+      "kind": "sales",
+      "source": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/source.md",
+      "required": true,
+      "metadata": {
+        "brand": "Fictitious AI",
+        "categoryLabel": "PRODUCT ANALYTICS",
+        "purpose": "Explore the handoff benefit of shared analysis without an unmeasured savings claim.",
+        "audience": "Analytics leaders coordinating reviewers",
+        "intentTags": [
+          "shared analysis",
+          "handoff"
+        ],
+        "variantGroup": "shared-value",
+        "countRationale": "Explore the handoff benefit of shared analysis without an unmeasured savings claim.",
+        "createdAtUTC": "2026-10-03T17:45:48.687367Z",
+        "presentation": false
+      },
+      "files": [
+        {
+          "path": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/review.html",
+          "mime": "text/html",
+          "role": "review-preview"
+        },
+        {
+          "path": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/source.md",
+          "mime": "text/markdown",
+          "role": "editable-source"
+        },
+        {
+          "path": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/publisher-metadata.md",
+          "mime": "text/markdown",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/publisher-metadata.json",
+          "mime": "application/json",
+          "role": "publisher-metadata"
+        },
+        {
+          "path": "assets/sales/SAL-004-the-value-of-a-shared-analysis/v01/render-manifest.json",
+          "mime": "application/json",
+          "role": "render-evidence"
+        }
+      ]
+    }
+  ]
+}

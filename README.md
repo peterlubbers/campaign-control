@@ -87,6 +87,8 @@ If an AI audit flags a judgment you disagree with, use **Override AI finding**, 
 
 ## Included example
 
+For faster local and Google Drive testing, [Pro500 Lite](fictitious-ai/campaigns/pro500-lite/README.md) provides **3 text-based assets in 18 files** (17 snapshot inputs). Upload that folder as-is. It is a separate, full-scope three-asset campaign, not the large sample's four-asset Demo mode.
+
 **Fictitious AI**, a fictional product analytics company, changes **Pro500 → Pro1000**, **$500 → $1,000/month**, and **removes sharing** across **104 deliverables in 11 channels**. All originals include publisher metadata; there are six actual motion MP4s and a PDF sales battlecard. Neutral publisher routes keep the demo focused on offer changes rather than URL migration. The separate hackathon presentation remains in Google Slides. [Explore the campaign](fictitious-ai/campaigns/pro500/README.md).
 
 The challenge exceeds find-and-replace: removing sharing can invalidate a promise that a colleague can continue an analysis. The hackathon demo used manually observed buyer-question context from the assigned Profound Mixpanel dataset. Those private observations are omitted from this public example; the workflow runs without them. You can supply permitted evidence from your own campaign. [Evidence workflow](docs/mixpanel-use.md).
