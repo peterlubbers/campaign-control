@@ -192,7 +192,14 @@ test('a snapshot preserves the exact original bytes and records Drive identity m
   const {client, drive, cleanup} = await connectedClient();
   const destination = await fs.mkdtemp(path.join(os.tmpdir(),'campaign-control-snapshot-'));
   try {
-    const {snapshot} = await client.createSnapshot({folderId:drive.rootId, destinationRoot: destination});
+    const progress = [];
+    const {snapshot} = await client.createSnapshot({folderId:drive.rootId, destinationRoot: destination,onProgress:update=>progress.push(update)});
+    assert.deepEqual([...new Set(progress.map(p=>p.phase))],['discovery','manifest','download','verification']);
+    const discovery = progress.filter(p=>p.phase === 'discovery');
+    assert.ok(discovery.length > 1);
+    assert.equal(discovery[0].folders,1);
+    assert.ok(discovery.at(-1).items > discovery[0].items);
+    assert.equal(progress.filter(p=>p.phase === 'download').length,snapshot.files.length);
     assert.equal(snapshot.folderId, drive.rootId);
     assert.equal(snapshot.campaignId, 'pro500');
     const local = JSON.parse(await fs.readFile(path.join(BUNDLED,'campaign.json'),'utf8'));
@@ -214,6 +221,24 @@ test('a snapshot preserves the exact original bytes and records Drive identity m
     assert.deepEqual(snapshot.files.map(file => file.path).sort(), [...referenced].sort());
     assert.equal(new Set(snapshot.files.map(file => file.path)).size, snapshot.files.length, 'No duplicate paths in a snapshot');
   } finally {await fs.rm(destination,{recursive:true,force:true}); await cleanup();}
+});
+
+test('missing-file diagnostics identify counts, missing ancestors, and visible neighboring names', async () => {
+  const manifest = {id:'missing-example',assets:[{id:'A',channel:'email',files:[
+    {path:'assets/email/review.html'},{path:'sources/copy.md'},
+  ]}]};
+  const {client,drive,cleanup,directory} = await connectedClient({files:new Map([
+    ['campaign.json',JSON.stringify(manifest)],['assets/email/review.html.txt','wrong extension'],
+  ])});
+  try {
+    const error = await rejection(()=>client.createSnapshot({folderId:drive.rootId,destinationRoot:path.join(directory,'snapshots')}));
+    assert.equal(error.code,'REFERENCED_FILE_MISSING');
+    assert.match(error.message,/2 referenced file/);
+    assert.match(error.message,/First unresolved path: “assets\/email\/review.html”/);
+    assert.match(error.message,/review.html.txt/);
+    assert.match(error.message,/sources\/copy.md/);
+    assert.match(error.message,/No snapshot was committed/);
+  } finally {await cleanup();}
 });
 
 test('ambiguous paths, missing files, and non-folder selections fail with honest errors', async () => {

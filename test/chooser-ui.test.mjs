@@ -108,14 +108,14 @@ test('the chooser lists every launch with its source, refresh state, and Drive c
   const disconnectButtons = cards.parsed.filter(item => item.data.disconnect);
   assert.equal(disconnectButtons.length, 1);
 
-  // A disconnected launch offers exactly one Drive action: reconnecting. Nothing to open, refresh, or revoke.
+  // Disconnect hides the card, not its retained history.
   fixture.chooser.launches[1].status = 'disconnected';
   run('renderChooser();');
   const disconnected = nodes.get('launch-cards').parsed;
   assert.equal(disconnected.filter(item => item.data.refresh).length, 0, 'A disconnected launch cannot refresh');
-  assert.equal(disconnected.find(item => item.data.open === 'launch-drive-1').disabled, true);
-  assert.equal(disconnected.find(item => item.data.disconnect).disabled, true);
-  assert.equal(disconnected.find(item => item.data.reconnect).disabled, false, 'Reconnect is the one action a disconnected launch offers');
+  assert.equal(disconnected.some(item => Object.values(item.data).includes('launch-drive-1')),false);
+  assert.equal(nodes.get('launch-count').textContent,1);
+  assert.equal(fixture.chooser.launches.length,2,'Hidden records remain preserved');
 });
 
 test('opening a launch scopes every request to its identity and keeps drafts per launch', async () => {
@@ -207,7 +207,7 @@ test('connecting Drive sends the browser to Google and returns ready for exactly
   assert.equal(bootNodes.get('chooser-notice').hidden, true);
 });
 
-test('a disconnected launch reconnects in place instead of adding a second launch', async () => {
+test('a previously started reconnect still replaces its hidden launch rather than adding another', async () => {
   const chooserPayload = chooserFixture().chooser;
   chooserPayload.launches[1].status = 'disconnected';
   const jsonResponse = payload => ({ok:true, status:200, headers:{get:() => 'application/json'}, json:async () => payload});
@@ -223,14 +223,13 @@ test('a disconnected launch reconnects in place instead of adding a second launc
   await drain();
   assert.equal(run('view'), 'chooser');
 
-  // The disconnected card offers exactly one Drive action: reconnecting.
+  // Disconnected records are hidden, but an already-started reconnect still resolves in place.
   const controls = nodes.get('launch-cards').parsed;
-  assert.equal(controls.filter(item => item.data.reconnect).length, 1);
+  assert.equal(controls.filter(item => item.data.reconnect).length, 0);
   assert.equal(controls.filter(item => item.data.refresh).length, 0, 'A disconnected launch cannot refresh');
-  assert.equal(controls.find(item => item.data.disconnect).disabled, true, 'There is no connection left to revoke');
-  assert.equal(controls.find(item => item.data.open === 'launch-drive-1').disabled, true);
+  assert.equal(controls.some(item => item.data.open === 'launch-drive-1'), false);
 
-  nodes.get('card-reconnect-launch-drive-1').listeners['card-click']();
+  run('void startReconnect("launch-drive-1");');
   await drain();
   assert.equal(run('location.href').startsWith('https://accounts.google.com/o/oauth2/v2/auth'), true, 'Reconnect sends the browser to Google consent');
   assert.equal(run("sessionStorage.getItem('cc-reconnect-launch')"), 'launch-drive-1', 'The launch identity survives the redirect');
@@ -246,4 +245,76 @@ test('a disconnected launch reconnects in place instead of adding a second launc
   assert.equal(returnRun('reconnectTarget'), null);
   assert.equal(returnNodes.get('drive-launch-form').hidden, true, 'Returning for an existing launch never asks for a folder again');
   assert.equal(calls.some(call => call.route === '/api/google/launches'), false, 'Reconnecting adds no launch');
+});
+
+test('recording a review keeps the review screen and announces work until the request finishes', async () => {
+  const fixture = chooserFixture();
+  const {nodes,run,drain} = fixture;
+  run('chooser=chooserPayload;state=chooserState();view="review";refreshing=false;');
+  run('globalThis.finishReview=null;globalThis.pendingReview=guarded(()=>new Promise(resolve=>{globalThis.finishReview=resolve;}),{id:"mark-reviewed",label:"Recording…"});');
+  assert.equal(nodes.get('review-transition').hidden,false);
+  assert.equal(nodes.get('mark-reviewed').disabled,true);
+  run('fetch=async()=>{throw new Error("Polling must pause during review save");};void refresh();');
+  await drain();
+  assert.equal(run('view'),'review');
+  run('finishReview();');
+  await drain();
+  assert.equal(nodes.get('review-transition').hidden,true);
+  assert.equal(run('requestBusy'),false);
+  run('void guarded(async()=>{throw new Error("Save failed");},{id:"mark-reviewed",label:"Recording…"});');
+  await drain();
+  assert.equal(nodes.get('review-transition').hidden,true,'Failure must also clear the loading indicator');
+  assert.equal(run('view'),'review');
+});
+
+test('Drive discovery stays visibly busy until job completion and preserves failures for retry', async () => {
+  const payload = chooserFixture().chooser;
+  let submissions = 0;
+  const fixture = chooserFixture({search:'?googleConnection=conn-123',fetch:async route=>{
+    if(route === '/api/google/launches') submissions++;
+    return {ok:true,status:200,headers:{get:()=> 'application/json'},json:async()=>route === '/api/google/launches' ? {jobId:'job-1'} : payload};
+  }});
+  const {run,nodes,drain} = fixture;
+  await drain();
+  run('pollJob = (route,onStatus,onDone) => {globalThis.jobStatus=onStatus;globalThis.jobDone=onDone;};');
+  nodes.get('drive-folder').value='folder-id-123';
+  await nodes.get('drive-launch-form').listeners.submit({preventDefault(){}});
+  assert.equal(nodes.get('add-drive-launch').disabled,true);
+  assert.equal(nodes.get('cancel-drive-launch').disabled,true);
+  assert.equal(nodes.get('drive-folder').disabled,true);
+  assert.equal(nodes.get('drive-connect-progress').hidden,false);
+  assert.equal(nodes.get('add-drive-launch').textContent,'Connecting to Drive…');
+  await nodes.get('drive-launch-form').listeners.submit({preventDefault(){}});
+  assert.equal(submissions,1);
+  run('jobStatus({progress:{message:"Discovering: 12 folders inspected"}});');
+  assert.equal(nodes.get('drive-progress-detail').textContent,'Discovering: 12 folders inspected');
+  assert.equal(nodes.get('connect-status').hidden,true);
+  run('jobStatus({progress:{phase:"download",completed:115,total:734,message:"Reading assets/example.html"}});');
+  assert.equal(nodes.get('drive-progress-bar').value,15);
+  assert.equal(nodes.get('drive-progress-label').textContent,'Creating verified snapshot');
+  assert.equal(nodes.get('drive-progress-counts').textContent,'115 of 734 files checked · 15%');
+  assert.equal(nodes.get('drive-progress-counts').hidden,false);
+  assert.equal(nodes.get('drive-progress-detail').textContent,'Reading assets/example.html');
+  run('jobStatus({progress:{phase:"verification",completed:367,total:734,message:"Verifying files"}});');
+  assert.equal(nodes.get('drive-progress-bar').value,50);
+  assert.match(nodes.get('drive-progress-label').textContent,/Verifying snapshot/);
+  const removed = [];
+  nodes.get('drive-progress-bar').removeAttribute = name=>removed.push(name);
+  run('jobStatus({progress:{phase:"verification",message:"Rechecking folder identities"}});');
+  assert.deepEqual(removed,['value'],'Unknown totals must show indeterminate progress, not a fabricated percentage');
+  assert.equal(nodes.get('drive-progress-label').textContent,'Verifying snapshot');
+  assert.equal(nodes.get('drive-progress-counts').hidden,true);
+  assert.equal(nodes.get('drive-progress-counts').textContent,'');
+  run('void jobDone({status:"failed",error:"Missing assets/email/review.html"});');
+  await drain();
+  assert.equal(nodes.get('add-drive-launch').disabled,false);
+  assert.equal(nodes.get('drive-connect-progress').hidden,true);
+  assert.equal(nodes.get('drive-folder').value,'folder-id-123');
+  assert.match(nodes.get('connect-status').textContent,/Missing assets/);
+  assert.equal(run('pendingConnectionId'),'conn-123');
+  await nodes.get('drive-launch-form').listeners.submit({preventDefault(){}});
+  run('void jobDone(null);');
+  await drain();
+  assert.match(nodes.get('connect-status').textContent,/may still be running/);
+  assert.equal(run('pendingConnectionId'),'conn-123','A polling failure must not claim connection succeeded');
 });

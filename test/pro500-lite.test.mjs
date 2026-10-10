@@ -19,7 +19,7 @@ test('Pro500 Lite is self-contained, within the 20-file budget, and preserves or
   const walk = async directory => {
     const results = [];
     for (const entry of await fs.readdir(directory,{withFileTypes:true})) {
-      if (['working','releases','.campaign-control','READY-TO-PUBLISH'].includes(entry.name)) continue;
+      if (['working','releases','.campaign-control','READY-TO-PUBLISH','.DS_Store'].includes(entry.name)) continue;
       const file = path.join(directory,entry.name);
       assert.equal(entry.isSymbolicLink(),false);
       if(entry.isDirectory()) results.push(...await walk(file));

@@ -62,7 +62,7 @@ Put these in the server environment, not in `campaign-control.config.json`. With
 2. Under **Add a launch → Connect a Google Drive campaign**, choose **Connect Google Drive**. The browser goes to Google consent.
 3. Google shows the read-only Drive scope. Consent is recorded; Campaign Control can read all Drive files available to your account, while the application itself reads only inside the folder you choose next.
 4. Back in Campaign Control, paste the **folder ID or full folder URL** that contains `campaign.json`.
-5. **Add Google Drive launch** starts a durable snapshot job. The card shows live progress, then the campaign name, asset count, readiness, and the last successful refresh time.
+5. **Add Google Drive launch** starts a durable snapshot job. The folder form stays busy and prevents duplicate submissions while it reports folders inspected, items found, and file-copy and verification counts. Large campaigns can take several minutes. On success, the launch card shows the campaign name, asset count, readiness, and the last successful refresh time.
 
 The snapshot runs as a restartable job: progress is recorded, and a job interrupted by a server restart is reported as interrupted rather than silently lost.
 
@@ -89,7 +89,7 @@ Drive content is copied into the launch’s private snapshot directory under the
 - **Refresh** re-reads the folder as a durable job, verifies the new snapshot, and only then switches the launch to it. The previous run is archived to `history/<runId>` with its snapshot identity, so earlier reviewed work stays auditable.
 - **Drift** is surfaced before review and approval: a Drive file changed since the snapshot shows the affected path, and the launch is marked stale until you refresh. Approval is never granted against content that changed underneath it.
 - **Reconnect** replaces a connection in place: the new grant is verified, a superseded connection is deleted instead of orphaned, and the drift notice clears after a successful refresh.
-- **Disconnect** requires the launch identity and a CSRF token, revokes the Google grant, deletes the local token, and returns you to the chooser. The card stays visible as disconnected; its snapshot and history remain on disk until you choose another action.
+- **Disconnect** requires the launch identity and a CSRF token, revokes the Google grant, deletes the local token, and returns you to the chooser. Disconnected cards are removed from the chooser and its count; their registry records, snapshots, and history remain on disk. Connecting the folder again through **Add a launch** creates a new launch, not a continuation of that hidden history.
 
 ## Demo scope for the bundled example
 
@@ -126,6 +126,7 @@ It starts the real application against a local stand-in for Google's consent, to
 | “Google authorization expired or was revoked.” | The grant was revoked, the refresh token expired, or the consent screen test-user list changed. Connect again. |
 | “Enter a valid Google Drive folder ID or folder URL.” | The value is neither a folder ID nor a folder URL. Copy the URL from the browser address bar while the folder is open. |
 | Snapshot reports ambiguous files | Two entries share a name in the same folder. Remove or rename one in Drive, then refresh. |
+| Snapshot reports missing or inaccessible references | The manifest was readable, but referenced paths could not be resolved. The error reports the total unresolved count, up to five paths, the first missing path component, and up to five neighboring names. Check the selected root, exact filenames/extensions, completed uploads, and access permissions. Absence and lack of access cannot be distinguished from the Drive listing alone. No snapshot is committed. |
 | Snapshot reports unsupported native documents | The campaign references a Google Docs/Slides/Sheets file or shortcut. Supply an exported/uploaded representation and update `campaign.json`, or accept the blocker. |
 | A file exceeds the snapshot limit | Split or replace the file; single files above 250 MB and snapshots above 1 GB are refused. |
 | The card shows drift after a refresh | A Drive file changed after the snapshot. Review the reported paths, then refresh again to record the new state. |

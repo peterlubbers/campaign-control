@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import net from 'node:net';
+import http from 'node:http';
 import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -124,6 +125,27 @@ test('campaign operations require an explicit launch identity and a CSRF token',
   assert.equal(goodToken.json.identity.launchId, 'launch-local-default');
   assert.equal(goodToken.json.capabilities.demoScopeDefault, false, 'A synthetic campaign is not the demo copy');
   assert.equal(goodToken.json.capabilities.workspaceReset, false);
+});
+
+test('OAuth return navigation may load the chooser but cross-site APIs remain blocked', async t => {
+  const drive = new FakeDrive({files:new Map([['campaign.json','{}']])});
+  const {base} = await application(t, {drive});
+  const navigate = (route, extra = {}) => new Promise((resolve, reject) => {
+    const req = http.request(base + route, {
+      method:extra.method || 'GET',
+      headers:{'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fetch-dest':'document',...extra.headers},
+    }, response => {response.resume(); response.on('end', () => resolve(response.statusCode));});
+    req.on('error', reject);
+    req.end();
+  });
+  assert.equal(await navigate('/?googleConnection=test-connection'), 200);
+  assert.equal(await navigate('/api/state'), 403);
+  assert.equal(await navigate('/api/google/authorize', {method:'POST'}), 403);
+  assert.equal(await navigate('/', {method:'POST'}), 403);
+  assert.equal(await navigate('/', {headers:{'sec-fetch-mode':'cors'}}), 403);
+  assert.equal(await navigate('/', {headers:{'sec-fetch-dest':'iframe'}}), 403);
+  assert.equal(await navigate('/', {headers:{origin:'https://evil.example'}}), 403);
+  assert.equal(await navigate('/oauth/google/callback?state=forged&code=bad'), 403);
 });
 
 test('the OAuth round trip issues one connection, rejects forged callbacks, and connects a Drive launch as a durable job', async t => {

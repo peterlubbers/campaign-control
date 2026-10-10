@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {applicationDataDirectory, WorkspaceRegistry, FileSystemWorkspaceStorage} from '../lib/workspaces.mjs';
+import {applicationDataDirectory, WorkspaceRegistry, FileSystemWorkspaceStorage, MAX_REGISTRY_BYTES} from '../lib/workspaces.mjs';
 
 async function temporaryDirectory() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(),'campaign-control-registry-'));
@@ -45,6 +45,47 @@ test('a registry file that is not a regular file is rejected without being repla
     await fs.unlink(file);
     await fs.symlink('/etc/hostname', file);
     await assert.rejects(() => new WorkspaceRegistry({dataDirectory:directory}).initialize(), /could not be read/);
+  } finally {await cleanup();}
+});
+
+test('multiple large Drive snapshots survive registry restart without rewriting saved evidence', async () => {
+  const {directory,cleanup} = await temporaryDirectory();
+  try {
+    const registry = new WorkspaceRegistry({dataDirectory:directory});
+    await registry.initialize();
+    const files = Array.from({length:734},(_,i)=>({
+      path:`assets/email/item-${i}/v01/review.html`,fileId:`file-${i}`,
+      sha256:'a'.repeat(64),metadata:'synthetic-evidence-'.repeat(35),
+    }));
+    for (const id of ['drive-one','drive-two']) await registry.addDriveLaunch({
+      id,folderId:'synthetic-folder',connectionId:'synthetic-connection',snapshot:{id:`snapshot-${id}`,files},
+    });
+    const file = path.join(directory,'registry.json');
+    const before = await fs.readFile(file);
+    assert.ok(before.length > 1024 * 1024);
+    const reopened = new WorkspaceRegistry({dataDirectory:directory});
+    await reopened.initialize();
+    assert.deepEqual(reopened.data,registry.data);
+    assert.deepEqual(await fs.readFile(file),before);
+  } finally {await cleanup();}
+});
+
+test('registry size limits reject oversized reads and writes while preserving saved data', async () => {
+  const {directory,cleanup} = await temporaryDirectory();
+  try {
+    const registry = new WorkspaceRegistry({dataDirectory:directory});
+    await registry.initialize();
+    const before = await fs.readFile(registry.file);
+    const data = registry.data;
+    await assert.rejects(()=>registry.saveData({...data,oversized:'x'.repeat(MAX_REGISTRY_BYTES)}),{code:'REGISTRY_TOO_LARGE'});
+    assert.equal(registry.data,data);
+    assert.deepEqual(await fs.readFile(registry.file),before);
+    let read = false;
+    const io = {...fs,lstat:async file=>file === registry.file
+      ? {isFile:()=>true,isSymbolicLink:()=>false,size:MAX_REGISTRY_BYTES+1}
+      : fs.lstat(file),readFile:async()=>{read=true;throw new Error('Must not read oversized file');}};
+    await assert.rejects(()=>new WorkspaceRegistry({dataDirectory:directory,io}).initialize(),{code:'REGISTRY_TOO_LARGE'});
+    assert.equal(read,false);
   } finally {await cleanup();}
 });
 

@@ -109,9 +109,13 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
       if (!hosts.has(request.headers.host)) throw new WorkflowError('This workbench accepts local requests only.',403);
       const url = new URL(request.url,`http://${request.headers.host}`);
       const callback = manager && url.pathname === '/oauth/google/callback';
+      // A browser retains cross-site fetch metadata through Google's callback
+      // redirect. Only the public chooser document may accept that navigation.
+      const chooserNavigation = request.method === 'GET' && url.pathname === '/' &&
+        request.headers['sec-fetch-mode'] === 'navigate' && request.headers['sec-fetch-dest'] === 'document';
       const origin = request.headers.origin;
       if (origin && ![...hosts].some(host => origin === `http://${host}`)) throw new WorkflowError('Cross-site requests are not allowed.',403);
-      if (!callback && request.headers['sec-fetch-site'] === 'cross-site') throw new WorkflowError('Cross-site requests are not allowed.',403);
+      if (!callback && !chooserNavigation && request.headers['sec-fetch-site'] === 'cross-site') throw new WorkflowError('Cross-site requests are not allowed.',403);
       let pathname = decodeURIComponent(url.pathname);
       if (!['GET','HEAD','POST'].includes(request.method)) throw new WorkflowError('Method is not supported.',405);
       if (callback) {

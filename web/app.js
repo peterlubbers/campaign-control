@@ -13,6 +13,7 @@ let aiDraft = null, aiSaving = false, aiChoiceSignature = '';
 let state, view = 'home', selectedId, requestBusy = false, refreshing = false, reviewSignature = '', librarySignature = '', toastTimer, lastProgress = '', pendingRun = false, demoMode = false, demoModeLoaded = false;
 // Multi-launch state: chooser is the workspace launch list; launch is the identity of the campaign currently open.
 let chooser = null, launch = null, csrfToken = '', pendingConnectionId = null, reconnectTarget = null, activeJob = null, disconnectTarget = null;
+let connectingDrive = false;
 const defaultBrief = $('brief').value;
 const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
 function safeURL(value) {try {const url = new URL(value,location.origin); const scoped = /^\/api\/workspaces\/[A-Za-z0-9_-]+\/launches\/[A-Za-z0-9_-]+\/artifacts\//.test(url.pathname); return url.origin === location.origin && (url.pathname.startsWith('/artifacts/') || scoped) ? url.pathname : '';} catch {return '';}}
@@ -378,14 +379,15 @@ function chooserState() {
 }
 function renderChooser() {
   if (!chooser) return;
-  $('launch-count').textContent = chooser.launches.length;
+  const visibleLaunches = chooser.launches.filter(card => card.status !== 'disconnected');
+  $('launch-count').textContent = visibleLaunches.length;
   const lock = chooser.processingLock;
   $('chooser-lock').hidden = !lock;
   if (lock) {$('chooser-lock').className = `status-pill warning`; $('chooser-lock').textContent = `Busy: ${lock.kind || 'processing'} in another launch`;}
   const notice = $('chooser-notice');
   notice.hidden = !(chooser.google && !chooser.google.configured);
   if (chooser.google && !chooser.google.configured) notice.innerHTML = `<strong>Google Drive is not configured on this server.</strong> Set <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, and <code>GOOGLE_REDIRECT_URI</code>, then restart. Local campaigns keep working.`;
-  $('launch-cards').innerHTML = chooser.launches.map(card => {
+  $('launch-cards').innerHTML = visibleLaunches.map(card => {
     const readiness = card.readiness || {label:'Not opened yet',tone:'warning'};
     const refreshed = card.lastSuccessfulRefreshAt ? ` · Refreshed ${new Date(card.lastSuccessfulRefreshAt).toLocaleString()}` : '';
     const details = `${card.campaignName ? esc(card.campaignName) : 'Campaign manifest not verified yet'}${card.registered != null ? ` · ${card.registered} assets` : ''}`;
@@ -408,10 +410,43 @@ function updateConnectForm() {
   $('google-start').hidden = connected;
   $('drive-launch-form').hidden = !connected;
   if (!connected) return;
-  $('drive-folder').focus();
+  if (!connectingDrive) $('drive-folder').focus();
+}
+function setDriveConnecting(busy) {
+  connectingDrive = busy;
+  $('drive-folder').disabled = busy;
+  $('cancel-drive-launch').disabled = busy;
+  $('add-drive-launch').disabled = busy;
+  $('add-drive-launch').textContent = busy ? 'Connecting to Drive…' : 'Add Google Drive launch';
+  $('drive-connect-progress').hidden = !busy;
+  $('drive-launch-form').setAttribute('aria-busy',String(busy));
+  if (busy) renderDriveProgress();
+}
+function renderDriveProgress(progress = {}) {
+  const bar = $('drive-progress-bar');
+  const label = $('drive-progress-label');
+  const counts = $('drive-progress-counts');
+  const stage = {discovery:'Discovering campaign files',manifest:'Checking campaign manifest',download:'Creating verified snapshot',verification:'Verifying snapshot'};
+  const title = stage[progress.phase] || 'Preparing campaign snapshot';
+  label.textContent = title;
+  if (Number.isFinite(progress.completed) && Number.isFinite(progress.total) && progress.total > 0) {
+    const completed = Math.min(progress.total,Math.max(0,progress.completed));
+    const percent = Math.floor(completed / progress.total * 100);
+    bar.value = percent;
+    counts.hidden = false;
+    counts.textContent = `${completed} of ${progress.total} files checked · ${percent}%`;
+  } else {
+    bar.removeAttribute('value');
+    counts.hidden = true;
+    counts.textContent = '';
+  }
 }
 function setConnectStatus(message, tone = 'help') {
   const status = $('connect-status');
+  const detail = $('drive-progress-detail');
+  detail.textContent = connectingDrive && tone !== 'danger' ? message || '' : '';
+  detail.hidden = !detail.textContent;
+  if (connectingDrive && tone !== 'danger') {status.hidden = true;status.textContent = '';return;}
   status.hidden = !message;
   status.className = tone === 'danger' ? 'danger' : 'help';
   status.textContent = message || '';
@@ -507,11 +542,13 @@ async function completeReconnect() {
   }
 }
 async function refresh() {
-  if (refreshing) return; refreshing=true;
+  if (refreshing || requestBusy) return; refreshing=true;
   try {
     if (launch) {
       const previousHash=state?.run?.candidateHash, previousRun=state?.run?.id;
-      state=await api('/api/state');
+      const snapshot=await api('/api/state');
+      if (requestBusy) return;
+      state=snapshot;
       if (!demoModeLoaded) adoptDemoDefault();
       if(previousHash!==state.run?.candidateHash || previousRun!==state.run?.id){$('confirm-facts').checked=false;reviewSignature='';}
       dashboard();
@@ -521,6 +558,7 @@ async function refresh() {
       if($('library').open && librarySignature!==JSON.stringify([state.run?.id,state.run?.candidateHash]))renderLibrary();
     } else {
       const snapshot = await api('/api/state');
+      if (requestBusy) return;
       if (snapshot.launches && snapshot.workspace && !snapshot.campaign) {
         chooser = snapshot; state = chooserState();
         if (view !== 'chooser') setView('chooser');
@@ -548,8 +586,12 @@ async function guarded(work, busy) {
   const simple = button ? !(button.children && button.children.length) : false;
   const restoreLabel = simple ? button.textContent : null;
   if (button) {button.disabled = true; if (simple && busy.label) button.textContent = busy.label;}
+  if (busy?.id === 'mark-reviewed') {
+    $('review-transition').hidden = false;
+    $('review-transition').setAttribute('aria-busy','true');
+  }
   try{await work();}catch(error){toast(error.message);if(view==='progress'){await refresh();if(!state?.busy&&!active.has(state?.run?.status))routeRun();}}
-  finally{if (button) {button.disabled = false; if (simple && restoreLabel !== null) button.textContent = restoreLabel;}requestBusy=false;if(state?.campaign){dashboard();if(view==='review')renderReview(true);}}
+  finally{if (busy?.id === 'mark-reviewed') {$('review-transition').hidden = true;$('review-transition').setAttribute('aria-busy','false');}if (button) {button.disabled = false; if (simple && restoreLabel !== null) button.textContent = restoreLabel;}requestBusy=false;if(state?.campaign){dashboard();if(view==='review')renderReview(true);}}
 }
 async function openCampaign() {
   await guarded(async()=>{
@@ -642,19 +684,27 @@ $('google-start').addEventListener('click',async()=>{
   catch(error){toast(error.message);}
   finally{requestBusy=false;}
 });
-$('cancel-drive-launch').addEventListener('click',()=>{pendingConnectionId=null;$('drive-launch-form').hidden=true;$('google-start').hidden=false;setConnectStatus('');});
-$('drive-launch-form').addEventListener('submit',event=>{
+$('cancel-drive-launch').addEventListener('click',()=>{if(connectingDrive)return;pendingConnectionId=null;$('drive-launch-form').hidden=true;$('google-start').hidden=false;setConnectStatus('');});
+$('drive-launch-form').addEventListener('submit',async event=>{
   event.preventDefault();
-  if(requestBusy||!pendingConnectionId)return;
+  if(requestBusy||activeJob||connectingDrive||!pendingConnectionId)return;
   const folderId=$('drive-folder').value.trim();
   if(!folderId){toast('Paste the Google Drive folder ID or URL that holds campaign.json.');$('drive-folder').focus();return;}
-  void guarded(async()=>{
+  setDriveConnecting(true);
+  requestBusy=true;
+  try{
     setConnectStatus('Reserving a private snapshot space and reading the Drive folder…');
     const result=await api('/api/google/launches',{connectionId:pendingConnectionId,folderId});
     activeJob=result.jobId;
-    pollJob(`/api/jobs/${result.jobId}`,job=>{setConnectStatus(job.progress?.message || 'Reading the Drive campaign…');},async job=>{
+    pollJob(`/api/jobs/${result.jobId}`,job=>{renderDriveProgress(job.progress);setConnectStatus(job.progress?.message || 'Reading the Drive campaign…');},async job=>{
       activeJob=null;
-      if(!job||job.status==='completed'){
+      setDriveConnecting(false);
+      if(!job){
+        setConnectStatus('Progress could not be retrieved. The snapshot may still be running. Reload the chooser to check its status before retrying.','danger');
+        return;
+      }
+      try {
+      if(job.status==='completed'){
         setConnectStatus('');pendingConnectionId=null;$('drive-folder').value='';
         try{history.replaceState(null,'','/');}catch{}
         const newLaunchId=job?.result?.launchId;
@@ -666,8 +716,12 @@ $('drive-launch-form').addEventListener('submit',event=>{
         setConnectStatus(job.error || 'The Drive connection failed.','danger');
         toast(job.error || 'The Drive connection failed.');
       }
+      } catch(error) {setConnectStatus(error.message,'danger');}
     });
-  },{id:'add-drive-launch',label:'Connecting…'});
+  } catch(error) {
+    setDriveConnecting(false);
+    setConnectStatus(error.message,'danger');
+  } finally {requestBusy=false;}
 });
 $('cancel-disconnect').addEventListener('click',()=>$('disconnect-dialog').close());
 $('confirm-disconnect').addEventListener('click',()=>{
