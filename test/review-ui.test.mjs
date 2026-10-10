@@ -73,6 +73,43 @@ test('review controls stay locked during real processing and blocked assets cann
   assert.equal(nodes.get('approve-button').disabled,true);
 });
 
+test('excluding the middle asset advances to the remaining review and permits final approval', async () => {
+  const {nodes,run} = reviewFixture();
+  run(`state.assets=state.assets.slice(0,3);state.run.scope.assetIds=['WEB002','VID-001','SOC-001'];state.run.reviewAssetIds=[...state.run.scope.assetIds];state.run.reviews={WEB002:{candidateHash:'synthetic-hash'}};selectedId='VID-001';renderReview(true);openResolution('VID-001','exclude');`);
+  nodes.get('resolution-reviewer').value='Test reviewer';
+  nodes.get('resolution-reason').value='Not in this release';
+  run(`fetch=async(route,options)=>{
+    if(!route.endsWith('/assets/VID-001/resolution'))throw new Error('Wrong exclusion target');
+    if(JSON.parse(options.body).action!=='exclude')throw new Error('Wrong action');
+    fixture.run.scope.assetIds=['WEB002','SOC-001'];
+    fixture.run.reviewAssetIds=['WEB002','SOC-001'];
+    return {ok:true,json:async()=>fixture};
+  };`);
+  await nodes.get('resolution-form').listeners.submit({preventDefault(){}});
+  assert.equal(run('selectedId'),'SOC-001');
+  assert.match(nodes.get('review-cards').innerHTML,/data-review="SOC-001"/);
+  assert.doesNotMatch(nodes.get('review-cards').innerHTML,/data-review="VID-001"/);
+  assert.equal(nodes.get('mark-reviewed').disabled,false);
+  assert.equal(nodes.get('approve-button').disabled,true);
+  run(`state.run.reviews['SOC-001']={candidateHash:state.run.candidateHash};$('confirm-facts').checked=true;$('reviewer').value='Test reviewer';renderReview(true);`);
+  assert.equal(nodes.get('approve-button').disabled,false);
+});
+
+test('the source-edit control expands and focuses the candidate editor', () => {
+  const {nodes,run} = reviewFixture();
+  run(`state.assets[3].capabilities={externalEditorRequired:false};renderReview(true);`);
+  const editor=nodes.get('candidate-editor'),details={open:false};
+  let focused=false;
+  editor.closest=selector=>selector==='details'?details:null;
+  editor.focus=()=>{focused=true;};
+  assert.match(nodes.get('asset-toolbar').innerHTML,/id="open-source-editor"/);
+  nodes.get('open-source-editor').listeners.click();
+  assert.equal(details.open,true);
+  assert.equal(focused,true);
+  run(`state.run.status='approved';renderReview(true);`);
+  assert.equal(nodes.get('open-source-editor').disabled,true);
+});
+
 test('picker renders friendly names, version and API ID, and separates credential presence from access', () => {
   const {nodes,run}=reviewFixture();
   run('openAISettings();');
