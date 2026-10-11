@@ -387,3 +387,61 @@ test('pending actions on structured controls never destroy their content', async
   assert.equal(nodes.get('campaign-button').textContent,'Campaign card with rich children','A structured control keeps its content through a pending action');
   assert.equal(nodes.get('campaign-button').disabled,false);
 });
+
+test('excluded assets remain visible in review and library without gating approval', () => {
+  const {nodes,run}=reviewFixture();
+  run(`state.run.assetDecisions={'SAL-004':{assetId:'SAL-004',action:'exclude',reviewer:'Tester',reason:'Out of scope'}};
+    state.run.scope.assetIds=['WEB002','VID-001','SOC-001'];
+    state.run.reviewAssetIds=[...state.run.scope.assetIds];
+    $('confirm-facts').checked=true;$('reviewer').value='Tester';renderReview(true);renderLibrary();`);
+  assert.match(nodes.get('review-cards').insertedHTML,/SAL-004/);
+  assert.match(nodes.get('review-cards').insertedHTML,/class="excluded-label">Excluded/);
+  assert.match(nodes.get('review-cards').insertedHTML,/data-resolution="restore"/);
+  assert.match(nodes.get('library-list').innerHTML,/class="excluded-label">Excluded/);
+  assert.equal(nodes.get('approve-button').disabled,false);
+});
+
+test('approval stays visibly pending through decision, packaging, and release loading', async () => {
+  const {nodes,run}=reviewFixture();
+  const drain=async()=>{for(let i=0;i<25;i++)await Promise.resolve();};
+  run(`state.run.reviews=Object.fromEntries(state.run.reviewAssetIds.map(id=>[id,{candidateHash:state.run.candidateHash}]));
+    $('confirm-facts').checked=true;$('reviewer').value='Tester';renderReview(true);
+    globalThis.requests=[];globalThis.replies=[];
+    fetch=(route)=>{requests.push(route);return new Promise(resolve=>replies.push(resolve));};
+    routeRun=()=>{view='release';};`);
+  nodes.get('approval-form').listeners.submit({preventDefault(){}});
+  assert.match(nodes.get('pending-title').textContent,/before approval/);
+  assert.equal(nodes.get('approve-button').disabled,true);
+  nodes.get('approval-form').listeners.submit({preventDefault(){}});
+  assert.equal(run('requests.length'),1);
+  run(`state.run.status='approved';replies.shift()({ok:true,json:async()=>state});`);
+  await drain();
+  assert.match(nodes.get('pending-title').textContent,/Preparing your publisher package/);
+  assert.equal(run('requests.length'),2);
+  assert.equal(nodes.get('review-transition').hidden,false);
+  run(`replies.shift()({ok:true,json:async()=>({})});`);
+  await drain();
+  assert.match(nodes.get('pending-title').textContent,/Opening your release/);
+  assert.equal(nodes.get('review-transition').hidden,false);
+  run(`replies.shift()({ok:true,json:async()=>state});`);
+  await drain();
+  assert.equal(nodes.get('review-transition').hidden,true);
+  assert.equal(run('view'),'release');
+});
+
+test('every guarded action exposes pending feedback and clears it on errors', async () => {
+  const {nodes,run}=reviewFixture();
+  for(const id of ['approve-button','save-candidate','submit-revision','reject-button','confirm-reset-demo','confirm-disconnect','next-version','update-button']) {
+    run(`globalThis.finish=null;globalThis.calls=0;globalThis.work=guarded(()=>{calls++;return new Promise(resolve=>finish=resolve);},{id:${JSON.stringify(id)},label:'Working…'});`);
+    assert.equal(nodes.get('review-transition').hidden,false,id);
+    assert.ok(nodes.get('pending-title').textContent,id);
+    await run(`guarded(async()=>{calls++;},{id:${JSON.stringify(id)}});`);
+    assert.equal(run('calls'),1,id);
+    run('finish();');
+    await run('work');
+    assert.equal(nodes.get('review-transition').hidden,true,id);
+    await run(`guarded(async()=>{throw new Error('Synthetic failure');},{id:${JSON.stringify(id)}});`);
+    assert.equal(nodes.get('review-transition').hidden,true,id);
+    assert.equal(run('requestBusy'),false,id);
+  }
+});

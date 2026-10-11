@@ -1478,6 +1478,9 @@ select {
 }
 button.capability-pill { cursor:pointer; background:transparent }
 button.capability-pill:hover:not(:disabled) { text-decoration:underline; border-color:var(--accent) }
+.excluded-label { color:#ff9a9a; font-weight:700 }
+.excluded-card { border-color:#ff9a9a80; background:#ff9a9a08 }
+.excluded-card .text-button { margin-top:12px }
 
 .library-row {
   display:flex;

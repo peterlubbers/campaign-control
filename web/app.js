@@ -51,7 +51,15 @@ function scopeAssets() {return state.run?.scope ? state.assets.filter(a => state
 function assetCleared(asset) {return asset.status === 'checked' || asset.resolution?.overridden;}
 function reviewIds() {const included=new Set(scopeAssets().map(a=>a.id));return (state.run?.reviewAssetIds || [...included].slice(0,4)).filter(id=>included.has(id));}
 function nextUnreviewedId() {return reviewIds().find(id=>state.run.reviews?.[id]?.candidateHash!==state.run.candidateHash);}
-function isBusy() {return requestBusy || state?.busy || active.has(state?.run?.status) || otherLaunchProcessing();}
+function isExcluded(asset) {return state.run?.assetDecisions?.[asset.id]?.action === 'exclude';}
+function showPending(title, detail = 'Please wait. Your request is still processing; there is no need to click again.') {
+  $('pending-title').textContent=title;
+  $('pending-detail').textContent=detail;
+  $('review-transition').hidden=false;
+  $('review-transition').setAttribute('aria-busy','true');
+}
+function hidePending() {$('review-transition').hidden=true;$('review-transition').setAttribute('aria-busy','false');}
+function isBusy() {return requestBusy || Boolean(activeJob) || state?.busy || active.has(state?.run?.status) || otherLaunchProcessing();}
 // One campaign update runs at a time across the whole workspace; every launch shows it.
 function otherLaunchProcessing() {return Boolean(state?.processingLock && state.identity && state.processingLock.launchId !== state.identity.launchId);}
 // Fresh sessions start in demo scope for the bundled example; the server flag keeps other campaign folders in full-campaign mode.
@@ -285,6 +293,7 @@ function renderReview(force = false) {
   $('approval-blockers').hidden = !blocked.length;
   $('approval-blockers').innerHTML = blocked.length ? `<h3 id="approval-blockers-heading" tabindex="-1">${blocked.length} ${blocked.length===1?'asset needs':'assets need'} a decision</h3><p class="muted">Revise the asset, exclude it from this launch, or explicitly override an eligible AI finding.</p><ul class="approval-blocker-list">${blocked.map(a=>{const reason=a.issues?.find(i=>i.severity==='error')?.message || a.checks?.find(c=>c.status!=='pass')?.message || 'Required checks have not completed.';return `<li><div><div class="asset-identity"><span class="asset-id">${esc(a.id)}</span><span class="asset-type">${esc(assetType(a))}</span></div><strong>${esc(a.title)}</strong><p>${esc(reason)}</p></div><button type="button" class="secondary" data-blocked-asset="${esc(a.id)}" aria-label="Review issue for ${esc(a.id)}">Review issue</button></li>`;}).join('')}</ul>` : '';
   $('review-cards').innerHTML = ids.map(id => {const a=state.assets.find(a=>a.id===id), reviewed=run.reviews?.[id]?.candidateHash === run.candidateHash;return `<button class="review-card ${reviewed?'reviewed':''}" data-review="${esc(id)}" aria-pressed="${selectedId===id}"><span class="asset-id">${esc(id)}</span><span class="asset-type">${esc(assetType(a))}</span><strong>${esc(a.title)}</strong><small>${esc(reviewCardState(run,a))}</small></button>`;}).join('');
+  $('review-cards').insertAdjacentHTML('beforeend',state.assets.filter(isExcluded).map(a=>`<div class="review-card excluded-card"><span class="asset-id">${esc(a.id)}</span><span class="asset-type">${esc(assetType(a))}</span><strong>${esc(a.title)}</strong><small class="excluded-label">Excluded</small><button type="button" class="text-button" data-resolution="restore" data-resolution-asset="${esc(a.id)}"${isBusy()?' disabled':''}>Include again</button></div>`).join(''));
   renderResolutions();
   const asset = state.assets.find(a=>a.id===selectedId); if (!asset) return;
   const reviewed = run.reviews?.[asset.id]?.candidateHash === run.candidateHash;
@@ -343,18 +352,25 @@ function openResolution(assetId, action) {
   $('resolution-dialog').showModal();($('resolution-reviewer').value?$('resolution-reason'):$('resolution-reviewer')).focus();
 }
 document.addEventListener('click',event=>{const button=event.target.closest('[data-resolution]');if(button&&!button.disabled)openResolution(button.dataset.resolutionAsset,button.dataset.resolution);});
-$('cancel-resolution').addEventListener('click',()=>$('resolution-dialog').close());
+$('cancel-resolution').addEventListener('click',()=>{if(!requestBusy)$('resolution-dialog').close();});
+$('resolution-dialog').addEventListener('cancel',event=>{if(requestBusy)event.preventDefault();});
+$('reset-demo-dialog').addEventListener('cancel',event=>{if(requestBusy)event.preventDefault();});
+$('ai-settings-dialog').addEventListener('cancel',event=>{if(aiSaving)event.preventDefault();});
 $('resolution-form').addEventListener('submit',async event=>{
   event.preventDefault();if(isBusy()||!resolutionTarget)return;
   const target={...resolutionTarget}, reviewer=$('resolution-reviewer').value.trim(),reason=$('resolution-reason').value.trim();if(!reviewer||!reason)return;
   requestBusy=true;$('submit-resolution').disabled=true;$('resolution-error').hidden=true;
+  const resolutionLabel=$('submit-resolution').textContent;
+  $('submit-resolution').textContent='Saving decision…';
+  $('cancel-resolution').disabled=true;
+  $('resolution-form').setAttribute('aria-busy','true');
   try {
     state=await api(`/api/runs/${target.runId}/assets/${target.assetId}/resolution`,{action:target.action,candidateHash:target.candidateHash,reviewer,reason,markReviewed:target.action==='override'});
     $('resolution-dialog').close();resolutionTarget=null;$('reviewer').value=reviewer;$('confirm-facts').checked=false;reviewSignature='';
     if(target.action==='exclude')selectedId=nextUnreviewedId() || reviewIds()[0];
     toast(target.action==='exclude'?'Asset excluded. Review the updated release scope.':target.action==='override'?'AI finding overridden. Your decision is recorded.':'Decision undone. Review the updated status.');
   } catch(error) {$('resolution-error').textContent=error.message;$('resolution-error').hidden=false;}
-  finally {requestBusy=false;$('submit-resolution').disabled=false;dashboard();if(view==='review'){renderReview(true);if(!resolutionTarget){const focus=nextUnreviewedId()?$('asset-heading'):$('confirm-facts');focus.scrollIntoView({block:'center',behavior:'instant'});focus.focus({preventScroll:true});}}}
+  finally {requestBusy=false;$('submit-resolution').disabled=false;$('submit-resolution').textContent=resolutionLabel;$('cancel-resolution').disabled=false;$('resolution-form').setAttribute('aria-busy','false');dashboard();if(view==='review'){renderReview(true);if(!resolutionTarget){const focus=nextUnreviewedId()?$('asset-heading'):$('confirm-facts');focus.scrollIntoView({block:'center',behavior:'instant'});focus.focus({preventScroll:true});}}}
 });
 function renderFailure() {
   const run=state.run; const questions=run?.questions || [];
@@ -462,17 +478,24 @@ function setConnectStatus(message, tone = 'help') {
 }
 // Poll a durable job until it reports a final outcome; launch jobs use their scoped job route.
 function pollJob(route, onStatus, onDone) {
+  let inFlight=false;
   const timer = setInterval(async () => {
+    if(inFlight)return;
+    inFlight=true;
     let job;
-    try {job = await api(route);}
-    catch (error) {clearInterval(timer);toast(error.message);onDone(null);return;}
-    onStatus(job);
-    if (['completed','failed','interrupted'].includes(job.status)) {clearInterval(timer);onDone(job);}
+    try {
+      try {job = await api(route);}
+      catch (error) {clearInterval(timer);toast(error.message);await onDone(null);return;}
+      onStatus(job);
+      if (['completed','failed','interrupted'].includes(job.status)) {clearInterval(timer);await onDone(job);}
+    } catch(error) {clearInterval(timer);toast(error.message);}
+    finally {inFlight=false;if(!job || ['completed','failed','interrupted'].includes(job.status))hidePending();}
   },1000);
 }
 async function openLaunch(launchId) {
-  if (requestBusy) return;
+  if (requestBusy || activeJob) return;
   requestBusy = true;
+  showPending('Opening and verifying your campaign…');
   try {
     launch = {workspaceId:chooser.workspace.id,launchId};
     // Per-launch interface state resets; unsaved drafts stay keyed to this launch's identity.
@@ -488,16 +511,18 @@ async function openLaunch(launchId) {
     toast(error.message);
     launch = null; state = chooser ? chooserState() : null;
     if (chooser) {setView('chooser'); renderChooser();}
-  } finally {requestBusy = false;}
+  } finally {requestBusy = false;hidePending();}
 }
 async function refreshDriveLaunch(launchId) {
   if (requestBusy || activeJob) return;
   requestBusy = true;
+  showPending('Refreshing the Drive snapshot…');
   try {
     const result = await api(launchRoute(launchId,'/refresh'),{launchId});
     requestBusy = false;
     activeJob = result.jobId;
     pollJob(launchRoute(launchId,`/jobs/${result.jobId}`),job => {
+      showPending('Refreshing the Drive snapshot…',job.progress?.message || 'Checking Drive files. Your previous snapshot is preserved until verification succeeds.');
       const line = document.querySelector(`[data-job="${CSS.escape(launchId)}"]`);
       if (line) {line.hidden = false; line.textContent = job.progress?.message || 'Refreshing the Drive snapshot…';}
     },async job => {
@@ -505,10 +530,11 @@ async function refreshDriveLaunch(launchId) {
       chooser = await api('/api/state');
       state = chooserState();
       renderChooser();
-      if (!job || job.status === 'completed') toast('Drive snapshot refreshed. The launch now works from the new snapshot.');
+      if (!job) toast('Progress could not be retrieved. The refresh may still be running; check the launch before retrying.');
+      else if (job.status === 'completed') toast('Drive snapshot refreshed. The launch now works from the new snapshot.');
       else toast(job?.error || 'The Drive refresh failed. The previous snapshot and all recorded work were preserved.');
     });
-  } catch (error) {requestBusy = false; toast(error.message);}
+  } catch (error) {requestBusy = false; hidePending();toast(error.message);}
 }
 // A disconnected launch reconnects in place: the browser authorizes, then the boot step replaces
 // this launch's connection. The launch keeps its identity, snapshots, and recorded work.
@@ -516,24 +542,27 @@ async function startReconnect(launchId) {
   if (requestBusy || activeJob) return;
   if (chooser?.google && !chooser.google.configured) {toast('Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI on this server, then restart to connect Google Drive.');return;}
   requestBusy = true;
+  showPending('Opening Google authorization…');
   try {
     reconnectTarget = launchId;
     try {sessionStorage.setItem('cc-reconnect-launch', launchId);} catch {}
     const {authorizationUrl} = await api('/api/google/authorize',{});
     location.href = authorizationUrl;
   } catch (error) {reconnectTarget = null; try {sessionStorage.removeItem('cc-reconnect-launch');} catch {} toast(error.message);}
-  finally {requestBusy = false;}
+  finally {requestBusy = false;hidePending();}
 }
 // Runs once the chooser is loaded, so the launch's scoped route is known after the Google redirect.
 async function completeReconnect() {
   const launchId = reconnectTarget, connectionId = pendingConnectionId;
   reconnectTarget = null; pendingConnectionId = null;
+  showPending('Verifying your Google connection…');
   try {
     const result = await api(launchRoute(launchId,'/connection'),{launchId,connectionId});
     try {sessionStorage.removeItem('cc-reconnect-launch');history.replaceState(null,'','/');} catch {}
     renderChooser();
     activeJob = result.jobId;
     pollJob(launchRoute(launchId,`/jobs/${result.jobId}`),job => {
+      showPending('Verifying your Google connection…',job.progress?.message || 'Please wait while the connection is verified.');
       const line = document.querySelector(`[data-job="${CSS.escape(launchId)}"]`);
       if (line) {line.hidden = false; line.textContent = job.progress?.message || 'Verifying the new Google connection…';}
     },async job => {
@@ -541,13 +570,15 @@ async function completeReconnect() {
       chooser = await api('/api/state');
       state = chooserState();
       renderChooser();
-      if (!job || job.status === 'completed') toast('Google Drive reconnected. Refresh to work from a new snapshot.');
+      if (!job) toast('Connection progress could not be retrieved. Check the launch before retrying.');
+      else if (job.status === 'completed') toast('Google Drive reconnected. Refresh to work from a new snapshot.');
       else toast(job?.error || 'Reconnecting failed. The previous snapshot and all recorded work were preserved.');
     });
   } catch (error) {
     try {sessionStorage.removeItem('cc-reconnect-launch');history.replaceState(null,'','/');} catch {}
     toast(error.message);
     setConnectStatus(error.message,'danger');
+    hidePending();
   }
 }
 async function refresh() {
@@ -587,7 +618,10 @@ async function refresh() {
   finally{refreshing=false;}
 }
 async function guarded(work, busy) {
-  if(requestBusy)return;requestBusy=true;
+  if(requestBusy || activeJob)return;requestBusy=true;
+  const titles={'mark-reviewed':'Saving your review and preparing the next step…','approve-button':'Checking this version before approval…','save-candidate':'Saving source changes and checking outputs…','submit-revision':'Revising this asset and checking the campaign…','reject-button':'Recording your decision…','confirm-reset-demo':'Archiving and resetting this workspace…','confirm-disconnect':'Disconnecting Google Drive…','next-version':'Preparing a new version…','update-button':'Starting your campaign update…','campaign-button':'Opening and checking the campaign…'};
+  showPending(titles[busy?.id] || busy?.label || 'Working on your request…');
+  if(view==='review' && state?.run)renderReview(true);
   if(state)renderAISettings();
   // Show the pending state immediately and block duplicate submissions while the request runs.
   const button = busy?.id ? $(busy.id) : null;
@@ -595,12 +629,8 @@ async function guarded(work, busy) {
   const simple = button ? !(button.children && button.children.length) : false;
   const restoreLabel = simple ? button.textContent : null;
   if (button) {button.disabled = true; if (simple && busy.label) button.textContent = busy.label;}
-  if (busy?.id === 'mark-reviewed') {
-    $('review-transition').hidden = false;
-    $('review-transition').setAttribute('aria-busy','true');
-  }
   try{await work();}catch(error){toast(error.message);if(view==='progress'){await refresh();if(!state?.busy&&!active.has(state?.run?.status))routeRun();}}
-  finally{if (busy?.id === 'mark-reviewed') {$('review-transition').hidden = true;$('review-transition').setAttribute('aria-busy','false');}if (button) {button.disabled = false; if (simple && restoreLabel !== null) button.textContent = restoreLabel;}requestBusy=false;if(state?.campaign){dashboard();if(view==='review')renderReview(true);}}
+  finally{hidePending();if (button) {button.disabled = false; if (simple && restoreLabel !== null) button.textContent = restoreLabel;}requestBusy=false;if(state?.campaign){dashboard();if(view==='review')renderReview(true);}}
 }
 async function openCampaign() {
   await guarded(async()=>{
@@ -623,7 +653,7 @@ function renderLibrary() {
   const query=$('asset-search').value.toLowerCase().trim(), filter=$('channel-filter').value;
   const status=$('asset-status-filter').value, included=new Set(scopeAssets().map(a=>a.id));
   const items=state.assets.filter(a=>(!filter||a.channel===filter)&&(!status||(status==='included'?included.has(a.id):included.has(a.id)&&a.required&&!assetCleared(a)))&&`${a.id} ${a.title} ${channel(a.channel)}`.toLowerCase().includes(query));
-  $('library-list').innerHTML=items.length?items.map(a=>`<button class="library-row" data-asset="${esc(a.id)}"><span class="asset-id">${esc(a.id)}</span><strong>${esc(a.title)}</strong><small>${esc(assetType(a))}${a.capabilities?.externalEditorRequired?' · External editor':''} · ${state.run&&!included.has(a.id)?'Outside this release':a.resolution?.overridden?'Human override':a.candidateText?(a.status==='checked'?'Checks passed':'Needs attention'):'Original'}</small><span aria-hidden="true">↗</span></button>`).join(''):'<p class="muted">No matching assets.</p>';
+  $('library-list').innerHTML=items.length?items.map(a=>`<button class="library-row" data-asset="${esc(a.id)}"><span class="asset-id">${esc(a.id)}</span><strong>${esc(a.title)}</strong><small>${esc(assetType(a))}${a.capabilities?.externalEditorRequired?' · External editor':''} · ${isExcluded(a)?'<span class="excluded-label">Excluded</span>':state.run&&!included.has(a.id)?'Outside this release':a.resolution?.overridden?'Human override':a.candidateText?(a.status==='checked'?'Checks passed':'Needs attention'):'Original'}</small><span aria-hidden="true">↗</span></button>`).join(''):'<p class="muted">No matching assets.</p>';
   librarySignature=JSON.stringify([state.run?.id,state.run?.candidateHash]);
 }
 function openLibrary(status='') {
@@ -632,7 +662,7 @@ function openLibrary(status='') {
   $('channel-filter').innerHTML='<option value="">All channels</option>'+Object.keys(state.evidence.channels).map(c=>`<option value="${esc(c)}">${esc(channel(c))}</option>`).join('');
   renderLibrary();$('library').showModal();$('asset-search').focus();
 }
-$('home-button').addEventListener('click',()=>{if(chooser){launch=null;state=chooserState();setView('chooser');renderChooser();}else{setView('home');dashboard();}});
+$('home-button').addEventListener('click',()=>{if(requestBusy||activeJob){toast('Please wait for the current operation to finish.');return;}if(chooser){launch=null;state=chooserState();setView('chooser');renderChooser();}else{setView('home');dashboard();}});
 $('ai-settings-button').addEventListener('click',openAISettings);
 $('cancel-ai-settings').addEventListener('click',cancelAISettings);
 $('ai-settings-dialog').addEventListener('cancel',event=>{if(aiSaving)event.preventDefault();else aiDraft=null;});
@@ -660,7 +690,10 @@ $('confirm-facts').addEventListener('change',()=>renderReview());$('reviewer').a
 $('approval-form').addEventListener('submit',event=>{event.preventDefault();if($('approve-button').disabled)return;const dirty=scopeAssets().filter(a=>hasCurrentDraft(state.run,a));if(dirty.length){toast(`Save or discard unsaved edits on ${dirty.map(a=>a.id).join(', ')} before approving.`);return;}void guarded(async()=>{
   const run=state.run, candidateHash=run.candidateHash;
   if(run.status!=='approved')state=await api(`/api/runs/${run.id}/decision`,{decision:'approve',candidateHash,reviewer:$('reviewer').value.trim(),comment:'Confirmed interpreted facts and reviewed representative assets in Campaign Control.'});
-  await api(`/api/runs/${run.id}/package`,{candidateHash});state=await api('/api/state');routeRun();
+  showPending('Approval recorded. Preparing your publisher package…','Verifying the approved files and assembling the download. Nothing is published.');
+  await api(`/api/runs/${run.id}/package`,{candidateHash});
+  showPending('Package prepared. Opening your release…');
+  state=await api('/api/state');routeRun();
 },{id:'approve-button',label:'Preparing release…'});});
 $('reject-button').addEventListener('click',()=>{if(!$('reviewer').value.trim()){toast('Enter your name to record a review decision.');$('reviewer').focus();return;}void guarded(async()=>{state=await api(`/api/runs/${state.run.id}/decision`,{decision:'reject',candidateHash:state.run.candidateHash,reviewer:$('reviewer').value.trim(),comment:'Reviewer requested changes.'});toast('Version rejected. Request an asset revision or revise the brief.');renderReview(true);},{id:'reject-button',label:'Recording…'});});
 for(const id of ['revise-brief-button','retry-button'])$(id).addEventListener('click',newBrief);
@@ -671,9 +704,9 @@ $('asset-search').addEventListener('input',()=>{$('library-detail').hidden=true;
 $('channel-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
 $('asset-status-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
 $('library-list').addEventListener('click',event=>{const button=event.target.closest('[data-asset]');if(!button)return;const asset=state.assets.find(a=>a.id===button.dataset.asset);$('library-list').hidden=true;$('library-detail').hidden=false;$('library-detail').innerHTML=`<button class="text-button" id="back-library">← All assets</button><div class="asset-identity"><span class="asset-id">${esc(asset.id)}</span><span class="asset-type">${esc(assetType(asset))}</span></div><h3>${esc(asset.title)}</h3>${asset.candidateText&&scopeAssets().includes(asset)&&state.run?.candidateHash?'<button class="secondary" id="review-library-asset">Open review & revision controls</button>':''}<div class="preview-grid">${preview(asset,'source')}${asset.candidateText?preview(asset,'candidate'):''}</div>${asset.issues?.length?`<div class="notice">${asset.issues.map(i=>`<p>${esc(i.message)} ${esc(i.evidence)}</p>`).join('')}</div>`:''}`;$('back-library').addEventListener('click',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;});$('review-library-asset')?.addEventListener('click',()=>openAssetReview(asset.id));$('back-library').focus();});
-$('copy-path').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('release-path').textContent);toast('Release folder path copied.');}catch{toast('Copy the folder path shown above.');}});
+$('copy-path').addEventListener('click',async()=>{const button=$('copy-path');if(button.disabled)return;button.disabled=true;const label=button.textContent;button.textContent='Copying…';try{await navigator.clipboard.writeText($('release-path').textContent);toast('Release folder path copied.');}catch{toast('Copy the folder path shown above.');}finally{button.disabled=false;button.textContent=label;}});
 $('reset-demo-button').addEventListener('click',()=>{if(isBusy())return;resetTarget={launchId:state.identity?.launchId ?? null,campaignId:state.campaign.id,runId:state.run?.id ?? null};$('reset-demo-dialog').showModal();$('cancel-reset-demo').focus();});
-$('cancel-reset-demo').addEventListener('click',()=>$('reset-demo-dialog').close());
+$('cancel-reset-demo').addEventListener('click',()=>{if(!requestBusy)$('reset-demo-dialog').close();});
 $('confirm-reset-demo').addEventListener('click',()=>{if(isBusy()||!resetTarget)return;void guarded(async()=>{
   state=await api('/api/demo/reset',resetTarget);
   $('reset-demo-dialog').close();resetTarget=null;
@@ -686,12 +719,14 @@ $('confirm-reset-demo').addEventListener('click',()=>{if(isBusy()||!resetTarget)
   toast('Reset complete. The original campaign is restored; previous work is archived privately.');
 },{id:'confirm-reset-demo',label:'Resetting…'});});
 $('google-start').addEventListener('click',async()=>{
-  if(requestBusy)return;
+  if(requestBusy||activeJob)return;
   if(chooser.google && !chooser.google.configured){toast('Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI on this server, then restart to connect Google Drive.');return;}
   requestBusy=true;
+  $('google-start').disabled=true;
+  showPending('Opening Google authorization…');
   try{const {authorizationUrl}=await api('/api/google/authorize',{});location.href=authorizationUrl;}
   catch(error){toast(error.message);}
-  finally{requestBusy=false;}
+  finally{requestBusy=false;$('google-start').disabled=false;hidePending();}
 });
 $('cancel-drive-launch').addEventListener('click',()=>{if(connectingDrive)return;pendingConnectionId=null;$('drive-launch-form').hidden=true;$('google-start').hidden=false;setConnectStatus('');});
 $('drive-launch-form').addEventListener('submit',async event=>{
