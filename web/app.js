@@ -15,6 +15,8 @@ let state, view = 'home', selectedId, requestBusy = false, refreshing = false, r
 let chooser = null, launch = null, csrfToken = '', pendingConnectionId = null, reconnectTarget = null, activeJob = null, disconnectTarget = null;
 let connectingDrive = false;
 let syncPollTimer = null;
+let librarySelection = new Set();
+let libraryShown = [];
 const defaultBrief = $('brief').value;
 const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
 function safeURL(value) {try {const url = new URL(value,location.origin); const scoped = /^\/api\/workspaces\/[A-Za-z0-9_-]+\/launches\/[A-Za-z0-9_-]+\/artifacts\//.test(url.pathname); return url.origin === location.origin && (url.pathname.startsWith('/artifacts/') || scoped) ? url.pathname : '';} catch {return '';}}
@@ -360,6 +362,35 @@ $('ai-settings-dialog').addEventListener('cancel',event=>{if(aiSaving)event.prev
 $('resolution-form').addEventListener('submit',async event=>{
   event.preventDefault();if(isBusy()||!resolutionTarget)return;
   const target={...resolutionTarget}, reviewer=$('resolution-reviewer').value.trim(),reason=$('resolution-reason').value.trim();if(!reviewer||!reason)return;
+  if(target.bulk){
+    requestBusy=true;$('submit-resolution').disabled=true;$('resolution-error').hidden=true;
+    const bulkLabel=$('submit-resolution').textContent;
+    $('submit-resolution').textContent='Saving decisions…';
+    $('cancel-resolution').disabled=true;
+    $('resolution-form').setAttribute('aria-busy','true');
+    const pendingTitle=target.action==='exclude'?'Excluding selected assets…':'Including selected assets…';
+    let done=0, failure=null;
+    showPending(pendingTitle,`0 of ${target.assetIds.length} recorded…`);
+    try {
+      for(const assetId of target.assetIds){
+        try {
+          state=await api(`/api/runs/${target.runId}/assets/${assetId}/resolution`,{action:target.action,candidateHash:state.run.candidateHash,reviewer,reason});
+          done++;
+          showPending(pendingTitle,`${done} of ${target.assetIds.length} recorded…`);
+        } catch(error) {failure=`${error.message} (${done} of ${target.assetIds.length} decisions were recorded.)`;break;}
+      }
+      if(failure) {$('resolution-error').textContent=failure;$('resolution-error').hidden=false;}
+      else {
+        $('resolution-dialog').close();resolutionTarget=null;$('reviewer').value=reviewer;reviewSignature='';
+        librarySelection=new Set();
+        toast(target.action==='exclude'?`${done} ${done===1?'asset':'assets'} excluded. Review the updated release scope.`:`${done} ${done===1?'asset':'assets'} included again.`);
+      }
+    } finally {
+      requestBusy=false;$('submit-resolution').disabled=false;$('submit-resolution').textContent=bulkLabel;$('cancel-resolution').disabled=false;$('resolution-form').setAttribute('aria-busy','false');
+      hidePending();dashboard();if(view==='review')renderReview(true);if($('library').open)renderLibrary();
+    }
+    return;
+  }
   requestBusy=true;$('submit-resolution').disabled=true;$('resolution-error').hidden=true;
   const resolutionLabel=$('submit-resolution').textContent;
   $('submit-resolution').textContent='Saving decision…';
@@ -611,7 +642,7 @@ async function refresh() {
       if(view==='progress' && !pendingRun)routeRun();
       else if(view==='review'){if(state.busy || !state.run?.candidateHash || state.run.status==='stale')routeRun();else renderReview();}
       else if(view==='release'){if(!state.readyRelease)routeRun();else renderRelease();}
-      if($('library').open && librarySignature!==JSON.stringify([state.run?.id,state.run?.candidateHash]))renderLibrary();
+      if($('library').open && librarySignature!==JSON.stringify([state.run?.id,state.run?.candidateHash,Object.keys(state.run?.assetDecisions||{}).length]))renderLibrary();
     } else {
       const snapshot = await api('/api/state');
       if (requestBusy) return;
@@ -665,14 +696,35 @@ function openAssetReview(assetId) {
   selectedId=assetId;setView('review',false);renderReview(true);
   $('asset-toolbar').scrollIntoView({block:'start',behavior:'instant'});$('asset-heading').focus({preventScroll:true});
 }
+function bulkEligible() {return Boolean(state?.run && state.capabilities?.assetResolution);}
+function renderBulkBar() {
+  const bar=$('library-bulk');
+  if(!bulkEligible()){bar.hidden=true;return;}
+  bar.hidden=false;
+  librarySelection=new Set([...librarySelection].filter(id=>state.assets.some(a=>a.id===id)));
+  const selected=[...librarySelection].map(id=>state.assets.find(a=>a.id===id));
+  const scope=new Set(scopeAssets().map(a=>a.id));
+  const excludable=selected.filter(a=>!isExcluded(a)&&scope.has(a.id));
+  const restorable=selected.filter(a=>isExcluded(a));
+  $('library-selection-count').textContent=selected.length?`${selected.length} selected`:'';
+  $('bulk-exclude').disabled=!excludable.length||isBusy();
+  $('bulk-exclude').textContent=excludable.length?`Exclude ${excludable.length} from launch`:'Exclude selected';
+  $('bulk-include').disabled=!restorable.length||isBusy();
+  $('bulk-include').textContent=restorable.length?`Include ${restorable.length} again`:'Include again';
+  $('library-select-all').checked=libraryShown.length>0&&libraryShown.every(id=>librarySelection.has(id));
+}
 function renderLibrary() {
   const query=$('asset-search').value.toLowerCase().trim(), filter=$('channel-filter').value;
   const status=$('asset-status-filter').value, included=new Set(scopeAssets().map(a=>a.id));
   const items=state.assets.filter(a=>(!filter||a.channel===filter)&&(!status||(status==='included'?included.has(a.id):included.has(a.id)&&a.required&&!assetCleared(a)))&&`${a.id} ${a.title} ${channel(a.channel)}`.toLowerCase().includes(query));
-  $('library-list').innerHTML=items.length?items.map(a=>`<button class="library-row" data-asset="${esc(a.id)}"><span class="asset-id">${esc(a.id)}</span><strong>${esc(a.title)}</strong><small>${esc(assetType(a))}${a.capabilities?.externalEditorRequired?' · External editor':''} · ${isExcluded(a)?'<span class="excluded-label">Excluded</span>':state.run&&!included.has(a.id)?'Outside this release':a.resolution?.overridden?'Human override':a.candidateText?(a.status==='checked'?'Checks passed':'Needs attention'):'Original'}</small><span aria-hidden="true">↗</span></button>`).join(''):'<p class="muted">No matching assets.</p>';
-  librarySignature=JSON.stringify([state.run?.id,state.run?.candidateHash]);
+  libraryShown=items.map(a=>a.id);
+  const bulk=bulkEligible();
+  $('library-list').innerHTML=items.length?items.map(a=>`<div class="library-item">${bulk?`<input type="checkbox" class="library-check" data-check="${esc(a.id)}" aria-label="Select ${esc(a.id)}"${librarySelection.has(a.id)?' checked':''}>`:''}<button class="library-row" data-asset="${esc(a.id)}"><span class="asset-id">${esc(a.id)}</span><strong>${esc(a.title)}</strong><small>${esc(assetType(a))}${a.capabilities?.externalEditorRequired?' · External editor':''} · ${isExcluded(a)?'<span class="excluded-label">Excluded</span>':state.run&&!included.has(a.id)?'Outside this release':a.resolution?.overridden?'Human override':a.candidateText?(a.status==='checked'?'Checks passed':'Needs attention'):'Original'}</small><span aria-hidden="true">↗</span></button></div>`).join(''):'<p class="muted">No matching assets.</p>';
+  renderBulkBar();
+  librarySignature=JSON.stringify([state.run?.id,state.run?.candidateHash,Object.keys(state.run?.assetDecisions||{}).length]);
 }
 function openLibrary(status='') {
+  librarySelection=new Set();
   $('library-detail').hidden=true;$('library-list').hidden=false;$('asset-search').value='';
   $('asset-status-filter').value=typeof status==='string'?status:'';
   $('channel-filter').innerHTML='<option value="">All channels</option>'+Object.keys(state.evidence.channels).map(c=>`<option value="${esc(c)}">${esc(channel(c))}</option>`).join('');
@@ -719,6 +771,25 @@ $('close-library').addEventListener('click',()=>$('library').close());
 $('asset-search').addEventListener('input',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
 $('channel-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
 $('asset-status-filter').addEventListener('change',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;renderLibrary();});
+$('library-list').addEventListener('change',event=>{const box=event.target.closest?.('[data-check]');if(!box)return;if(box.checked)librarySelection.add(box.dataset.check);else librarySelection.delete(box.dataset.check);renderBulkBar();});
+$('library-select-all').addEventListener('change',()=>{const checked=$('library-select-all').checked;for(const id of libraryShown){if(checked)librarySelection.add(id);else librarySelection.delete(id);}renderLibrary();});
+function openBulkResolution(action) {
+  if(isBusy()||!state.run||!bulkEligible())return;
+  const selected=[...librarySelection].map(id=>state.assets.find(a=>a.id===id)).filter(Boolean);
+  const scope=new Set(scopeAssets().map(a=>a.id));
+  const targets=action==='exclude'?selected.filter(a=>!isExcluded(a)&&scope.has(a.id)):selected.filter(a=>isExcluded(a));
+  if(!targets.length)return;
+  if(action==='exclude'&&scopeAssets().length-targets.length<1){toast('At least one asset must stay in the release.');return;}
+  resolutionTarget={runId:state.run.id,action,assetIds:targets.map(a=>a.id),bulk:true};
+  $('resolution-heading').textContent=action==='exclude'?`Exclude ${targets.length} ${targets.length===1?'asset':'assets'} from launch?`:`Include ${targets.length} ${targets.length===1?'asset':'assets'} again?`;
+  $('resolution-description').textContent=action==='exclude'?'The selected assets and their publisher files stay out of the release. Their work is preserved, and you can include them again. Reviews of unchanged assets are retained.':'The selected assets return to their previous review state. Any restored blocker must be resolved before release approval.';
+  $('resolution-reviewer').value=$('reviewer').value;
+  $('resolution-reason').value='';$('resolution-error').hidden=true;$('submit-resolution').disabled=false;
+  $('submit-resolution').textContent=action==='exclude'?'Exclude assets':'Include assets';
+  $('resolution-dialog').showModal();($('resolution-reviewer').value?$('resolution-reason'):$('resolution-reviewer')).focus();
+}
+$('bulk-exclude').addEventListener('click',()=>openBulkResolution('exclude'));
+$('bulk-include').addEventListener('click',()=>openBulkResolution('restore'));
 $('library-list').addEventListener('click',event=>{const button=event.target.closest('[data-asset]');if(!button)return;const asset=state.assets.find(a=>a.id===button.dataset.asset);$('library-list').hidden=true;$('library-detail').hidden=false;$('library-detail').innerHTML=`<button class="text-button" id="back-library">← All assets</button><div class="asset-identity"><span class="asset-id">${esc(asset.id)}</span><span class="asset-type">${esc(assetType(asset))}</span></div><h3>${esc(asset.title)}</h3>${asset.candidateText&&scopeAssets().includes(asset)&&state.run?.candidateHash?'<button class="secondary" id="review-library-asset">Open review & revision controls</button>':''}<div class="preview-grid">${preview(asset,'source')}${asset.candidateText?preview(asset,'candidate'):''}</div>${asset.issues?.length?`<div class="notice">${asset.issues.map(i=>`<p>${esc(i.message)} ${esc(i.evidence)}</p>`).join('')}</div>`:''}`;$('back-library').addEventListener('click',()=>{$('library-detail').hidden=true;$('library-list').hidden=false;});$('review-library-asset')?.addEventListener('click',()=>openAssetReview(asset.id));$('back-library').focus();});
 $('copy-path').addEventListener('click',async()=>{const button=$('copy-path');if(button.disabled)return;button.disabled=true;const label=button.textContent;button.textContent='Copying…';try{await navigator.clipboard.writeText($('release-path').textContent);toast('Release folder path copied.');}catch{toast('Copy the folder path shown above.');}finally{button.disabled=false;button.textContent=label;}});
 $('reset-demo-button').addEventListener('click',()=>{if(isBusy())return;resetTarget={launchId:state.identity?.launchId ?? null,campaignId:state.campaign.id,runId:state.run?.id ?? null};$('reset-demo-dialog').showModal();$('cancel-reset-demo').focus();});

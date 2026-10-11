@@ -429,6 +429,76 @@ test('approval stays visibly pending through decision, packaging, and release lo
   assert.equal(run('view'),'release');
 });
 
+test('library bulk selection excludes and restores multiple assets with per-asset decisions', async () => {
+  const {nodes,run}=reviewFixture();
+  run(`view='dashboard';state.run.assetDecisions=undefined;renderLibrary();$('library').open=true;`);
+  const list=nodes.get('library-list');
+  assert.match(list.innerHTML,/data-check="WEB002"/,'Bulk checkboxes render when resolutions are available');
+  const check=id=>list.listeners.change({target:{closest:()=>({dataset:{check:id},checked:true})}});
+  check('WEB002');check('SOC-001');
+  assert.equal(nodes.get('library-selection-count').textContent,'2 selected');
+  assert.equal(nodes.get('bulk-exclude').disabled,false);
+  assert.equal(nodes.get('bulk-exclude').textContent,'Exclude 2 from launch');
+  assert.equal(nodes.get('bulk-include').disabled,true,'Nothing excluded yet, so restore stays disabled');
+
+  nodes.get('bulk-exclude').listeners.click();
+  assert.equal(nodes.get('resolution-dialog').open,true);
+  assert.match(nodes.get('resolution-heading').textContent,/Exclude 2 assets/);
+  nodes.get('resolution-reviewer').value='Test reviewer';
+  nodes.get('resolution-reason').value='Not in this release';
+  run(`globalThis.calls=[];fetch=async(route,options)=>{
+    const id=/assets\\/([A-Za-z0-9_.-]+)\\/resolution/.exec(route)[1];
+    calls.push(id+':'+JSON.parse(options.body).action);
+    fixture.run.assetDecisions={...(fixture.run.assetDecisions||{}),[id]:{action:JSON.parse(options.body).action,reason:'Not in this release',reviewer:'Test reviewer'}};
+    return {ok:true,json:async()=>fixture};
+  };`);
+  await nodes.get('resolution-form').listeners.submit({preventDefault(){}});
+  assert.equal(run('calls.join("|")'),'WEB002:exclude|SOC-001:exclude');
+  assert.equal(nodes.get('resolution-dialog').open,false);
+  assert.equal(run('librarySelection.size'),0);
+  assert.match(list.innerHTML,/WEB002[\s\S]*excluded-label">Excluded/,'Excluded assets stay listed with the red label');
+  assert.match(nodes.get('pending-title').textContent,/Excluding selected assets/);
+  assert.equal(nodes.get('review-transition').hidden,true,'Pending feedback clears when the bulk action completes');
+
+  // Select-all shown covers every visible row, then restore brings both assets back.
+  run(`$('library-select-all').checked=true;$('library-select-all').listeners.change();`);
+  assert.equal(run('librarySelection.size'),4);
+  nodes.get('bulk-include').listeners.click();
+  assert.match(nodes.get('resolution-heading').textContent,/Include 2 assets again/,'Only excluded assets are restore targets');
+  nodes.get('resolution-reviewer').value='Test reviewer';
+  nodes.get('resolution-reason').value='Back in scope';
+  await nodes.get('resolution-form').listeners.submit({preventDefault(){}});
+  assert.equal(run('calls.slice(2).join("|")'),'WEB002:restore|SOC-001:restore');
+  assert.equal(run('librarySelection.size'),0);
+});
+
+test('bulk exclusion cannot remove the entire release scope and stops on the first server error', async () => {
+  const {nodes,run}=reviewFixture();
+  run(`view='dashboard';state.run.assetDecisions=undefined;renderLibrary();$('library').open=true;`);
+  run(`$('library-select-all').checked=true;$('library-select-all').listeners.change();`);
+  nodes.get('bulk-exclude').listeners.click();
+  assert.equal(nodes.get('resolution-dialog').open,false,'Excluding every asset is refused before the dialog opens');
+
+  // A mid-batch failure reports progress honestly and keeps the dialog open.
+  run(`state.run.assetDecisions={SOC001x:{action:'exclude'}};librarySelection=new Set(['WEB002','VID-001']);renderBulkBar();`);
+  nodes.get('bulk-exclude').listeners.click();
+  assert.equal(nodes.get('resolution-dialog').open,true);
+  nodes.get('resolution-reviewer').value='Test reviewer';
+  nodes.get('resolution-reason').value='Not in this release';
+  run(`globalThis.calls=[];fetch=async(route,options)=>{
+    const id=/assets\\/([A-Za-z0-9_.-]+)\\/resolution/.exec(route)[1];
+    calls.push(id);
+    if(id==='VID-001')return {ok:false,json:async()=>({error:'Candidate changed. Refresh before deciding.'})};
+    fixture.run.assetDecisions={...(fixture.run.assetDecisions||{}),[id]:{action:'exclude',reason:'x',reviewer:'r'}};
+    return {ok:true,json:async()=>fixture};
+  };`);
+  await nodes.get('resolution-form').listeners.submit({preventDefault(){}});
+  assert.equal(run('calls.join("|")'),'WEB002|VID-001','The batch stops at the first failure');
+  assert.equal(nodes.get('resolution-dialog').open,true);
+  assert.match(nodes.get('resolution-error').textContent,/1 of 2 decisions were recorded/);
+  assert.equal(nodes.get('review-transition').hidden,true);
+});
+
 test('every guarded action exposes pending feedback and clears it on errors', async () => {
   const {nodes,run}=reviewFixture();
   for(const id of ['approve-button','save-candidate','submit-revision','reject-button','confirm-reset-demo','confirm-disconnect','next-version','update-button']) {

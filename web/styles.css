@@ -1482,6 +1482,48 @@ button.capability-pill:hover:not(:disabled) { text-decoration:underline; border-
 .excluded-card { border-color:#ff9a9a80; background:#ff9a9a08 }
 .excluded-card .text-button { margin-top:12px }
 
+.library-item {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.library-check {
+  flex:none;
+  width:16px;
+  height:16px;
+  accent-color:var(--accent,#7c9eff);
+}
+
+.library-bulk {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:-10px 0 16px;
+  padding:10px 14px;
+  border:1px solid #ffffff14;
+  border-radius:10px;
+  background:#ffffff06;
+}
+
+.library-bulk[hidden] {
+  display:none;
+}
+
+.library-select-all {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+#library-selection-count {
+  font-size:12px;
+  color:var(--muted);
+  flex:1;
+}
+
 .library-row {
   display:flex;
   align-items:center;
