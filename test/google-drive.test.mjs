@@ -396,4 +396,43 @@ test('the client surfaces Drive unavailability without touching local campaigns'
   } finally {await cleanup();}
 });
 
+test('snapshot downloads run concurrently within a bounded limit and keep deterministic record order', async () => {
+  const {client, drive, cleanup} = await connectedClient();
+  const destination = await fs.mkdtemp(path.join(os.tmpdir(),'campaign-control-snapshot-'));
+  try {
+    const local = JSON.parse(await fs.readFile(path.join(BUNDLED,'campaign.json'),'utf8'));
+    const referenced = new Set(['campaign.json','brand/identity.json']);
+    for (const asset of local.assets) {if (asset.source) referenced.add(asset.source); for (const file of asset.files || []) referenced.add(file.path);}
+    const expectedOrder = [...referenced].sort((a,b) => a.localeCompare(b));
+
+    // Track peak simultaneous Drive downloads and metadata reads through a delaying wrapper.
+    const instrumented = (limit) => {
+      let inFlight = 0; let peak = 0;
+      const base = drive.fetchImpl();
+      const fetchImpl = async (url, options = {}) => {
+        const isPayload = String(url).includes('alt=media') || (options && options.download);
+        if (!isPayload) return base(url, options);
+        inFlight += 1; peak = Math.max(peak, inFlight);
+        await new Promise(resolve => setTimeout(resolve, 5));
+        try { return await base(url, options); }
+        finally { inFlight -= 1; }
+      };
+      return {fetchImpl, peak:() => peak, limit};
+    };
+
+    const parallel = instrumented(4);
+    const parallelClient = new GoogleDriveClient({...client, fetchImpl:parallel.fetchImpl, downloadConcurrency:4});
+    const {snapshot} = await parallelClient.createSnapshot({folderId:drive.rootId, destinationRoot:destination});
+    assert.ok(parallel.peak() > 1, `Expected parallel downloads, peak was ${parallel.peak()}`);
+    assert.ok(parallel.peak() <= 4, `Concurrency exceeded its bound: ${parallel.peak()}`);
+    assert.deepEqual(snapshot.files.map(file => file.path), expectedOrder, 'Snapshot records keep manifest order regardless of completion order');
+
+    // A concurrency of one preserves the old fully sequential behavior.
+    const serial = instrumented(1);
+    const serialClient = new GoogleDriveClient({...client, fetchImpl:serial.fetchImpl, downloadConcurrency:1});
+    await serialClient.createSnapshot({folderId:drive.rootId, destinationRoot:destination});
+    assert.equal(serial.peak(), 1, 'downloadConcurrency 1 never overlaps downloads');
+  } finally {await fs.rm(destination,{recursive:true,force:true}); await cleanup();}
+});
+
 function errorIsHonest(error) {return error instanceof GoogleDriveError && typeof error.status === 'number' && typeof error.code === 'string';}
