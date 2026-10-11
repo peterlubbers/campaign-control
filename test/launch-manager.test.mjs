@@ -114,6 +114,62 @@ test('a connected Drive launch reaches 104-asset parity with the bundled sample 
   assert.ok(state.storage.snapshot.startsWith(manager.storage.snapshotRoot(DEFAULT_WORKSPACE_ID, launch.id)));
 });
 
+test('a deferred Drive connection lists the launch immediately and finishes its snapshot in the background', async t => {
+  const {manager, drive, connect} = await managerFixture(t);
+  const connectionId = await connect();
+  const progress = [];
+  const {launch, state} = await manager.addDriveLaunch({folderId:drive.rootId, connectionId, defer:true, onProgress:update=>progress.push(update)});
+  assert.equal(state, null, 'A deferred launch has no engine until its snapshot completes');
+  assert.equal(launch.status, 'syncing');
+  assert.equal(launch.snapshot.complete, false);
+  assert.equal(manager.lock, null, 'Registering a deferred launch never holds the workspace lock');
+  await assert.rejects(() => manager.engine(launch.id), error => /still syncing/.test(error.message));
+  const card = manager.list().find(item => item.id === launch.id);
+  assert.equal(card.readiness.label, 'Syncing snapshot…');
+  assert.deepEqual(card.sync, {completed:1, total:2});
+
+  const done = await manager.completeDriveLaunch(launch.id, {onProgress:update=>progress.push(update)});
+  assert.equal(done.launch.status, 'connected');
+  assert.equal(done.launch.snapshot.complete, true);
+  assert.ok(progress.some(update => update.phase === 'verification'));
+  const engine = await manager.engine(launch.id);
+  assert.equal(engine.state().evidence.registered, 1);
+  const snapshotDir = path.join(manager.storage.snapshotRoot(DEFAULT_WORKSPACE_ID, launch.id), done.launch.snapshot.id);
+  assert.match(await fs.readFile(path.join(snapshotDir,'sources/web.md'),'utf8'), /Old Plan/);
+  const completed = manager.list().find(item => item.id === launch.id);
+  assert.equal(completed.sync, undefined);
+  assert.equal(completed.readiness.label, 'Launch ready', 'Once the engine exists, its own readiness wins');
+});
+
+test('an interrupted background sync is marked, blocks opening, and a refresh heals it', async t => {
+  const {manager, drive, connect} = await managerFixture(t);
+  const connectionId = await connect();
+  const {launch} = await manager.addDriveLaunch({folderId:drive.rootId, connectionId, defer:true});
+  drive.failDownload('sources/web.md');
+  await assert.rejects(() => manager.completeDriveLaunch(launch.id), error => error.code === 'SNAPSHOT_INCOMPLETE');
+  assert.equal(manager.registry.launch(launch.id).status, 'sync-failed');
+  await assert.rejects(() => manager.engine(launch.id), error => /interrupted/.test(error.message));
+  const card = manager.list().find(item => item.id === launch.id);
+  assert.equal(card.readiness.label, 'Sync interrupted · refresh to finish');
+
+  // A server restart keeps the interruption explicit instead of retrying silently.
+  drive.failDownloads.clear();
+  const restart = new LaunchManager({
+    root: REPO, dataDirectory: manager.registry.dataDirectory, campaignDir: manager.localCampaignDir,
+    provider: syntheticProvider(), renderAsset: syntheticRender,
+    driveOptions: {clientId:'test-client', clientSecret:'test-secret', driveApi:'https://drive.example.test/drive', fetchImpl: drive.fetchImpl()},
+  });
+  await restart.initialize();
+  assert.equal(restart.registry.launch(launch.id).status, 'sync-failed');
+
+  // A refresh runs a full synchronous snapshot and heals the launch.
+  const refreshed = await restart.refreshDriveLaunch(launch.id);
+  assert.equal(refreshed.launch.status, 'connected');
+  assert.equal(refreshed.launch.snapshot.complete, true);
+  const engine = await restart.engine(launch.id);
+  assert.equal(engine.state().evidence.registered, 1);
+});
+
 test('a modified Drive copy of the sample connects at full scope without the demo default', async t => {
   const drive = await fakeDriveFromCampaign(BUNDLED, {brandPath:BUNDLED_BRAND});
   const local = JSON.parse(await fs.readFile(path.join(BUNDLED,'campaign.json'),'utf8'));

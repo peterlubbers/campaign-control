@@ -155,7 +155,7 @@ export async function createApplication({root = ROOT, campaignDir, brandPath = n
         }
         if (pathname === '/api/google/launches' && manager) {
           if (typeof input.connectionId !== 'string' || !input.connectionId) throw new WorkflowError('Complete the Google authorization step before choosing a folder.',400);
-          const job=await manager.startJob(null,'Drive connection',running=>manager.addDriveLaunch({folderId:input.folderId,connectionId:input.connectionId,onProgress:progress=>{running.progress=progress;}}));
+          const job=await manager.startDriveConnection({folderId:input.folderId,connectionId:input.connectionId});
           return json(response,202,job);
         }
         // Drive-only operations refuse a non-Drive launch synchronously; a job that can only fail is never queued.

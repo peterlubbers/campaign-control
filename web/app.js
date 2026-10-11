@@ -14,6 +14,7 @@ let state, view = 'home', selectedId, requestBusy = false, refreshing = false, r
 // Multi-launch state: chooser is the workspace launch list; launch is the identity of the campaign currently open.
 let chooser = null, launch = null, csrfToken = '', pendingConnectionId = null, reconnectTarget = null, activeJob = null, disconnectTarget = null;
 let connectingDrive = false;
+let syncPollTimer = null;
 const defaultBrief = $('brief').value;
 const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
 function safeURL(value) {try {const url = new URL(value,location.origin); const scoped = /^\/api\/workspaces\/[A-Za-z0-9_-]+\/launches\/[A-Za-z0-9_-]+\/artifacts\//.test(url.pathname); return url.origin === location.origin && (url.pathname.startsWith('/artifacts/') || scoped) ? url.pathname : '';} catch {return '';}}
@@ -415,14 +416,29 @@ function renderChooser() {
   $('launch-cards').innerHTML = visibleLaunches.map(card => {
     const readiness = card.readiness || {label:'Not opened yet',tone:'warning'};
     const refreshed = card.lastSuccessfulRefreshAt ? ` · Refreshed ${new Date(card.lastSuccessfulRefreshAt).toLocaleString()}` : '';
-    const details = `${card.campaignName ? esc(card.campaignName) : 'Campaign manifest not verified yet'}${card.registered != null ? ` · ${card.registered} assets` : ''}`;
+    const syncing = card.status === 'syncing';
+    const syncFailed = card.status === 'sync-failed';
+    const syncDetails = card.sync ? ` · Syncing ${card.sync.completed} of ${card.sync.total} files` : '';
+    const details = `${card.campaignName ? esc(card.campaignName) : 'Campaign manifest not verified yet'}${card.registered != null ? ` · ${card.registered} assets` : ''}${esc(syncDetails)}`;
     const disconnected = card.status === 'disconnected';
     // A disconnected launch can only reconnect: there is nothing to open, refresh, or revoke.
+    // A syncing launch cannot open yet; an interrupted sync heals through a refresh.
     const driveActions = card.type !== 'google-drive' ? '' : disconnected
       ? `<button type="button" class="secondary launch-action" data-reconnect="${esc(card.id)}">Reconnect</button><button type="button" class="text-button launch-action" data-disconnect="${esc(card.id)}" disabled>Disconnect</button>`
-      : `<button type="button" class="secondary launch-action" data-refresh="${esc(card.id)}">Refresh</button><button type="button" class="text-button launch-action" data-disconnect="${esc(card.id)}">Disconnect</button>`;
-    return `<article class="launch-card${card.status === 'disconnected' ? ' disconnected' : ''}"><div class="card-top"><img src="/brand/logo.svg" alt="" width="34" height="34"><span class="status-pill launch-readiness ${readiness.tone || 'info'}">${esc(readiness.label)}</span></div><p class="eyebrow">${esc(card.source)}</p><h2>${esc(card.label)}</h2><p class="muted">${details}</p><p class="launch-meta">${esc(card.workspacePath ? 'Local folder' : 'Read-only Drive snapshot')}${card.type === 'google-drive' && !refreshed ? ' · Not refreshed yet' : ''}${esc(refreshed)}</p>${card.sampleMatch ? '<span class="pill">Public demo copy · demo scope by default</span>' : ''}<div class="card-bottom"><button type="button" class="primary open-launch" data-open="${esc(card.id)}"${disconnected ? ' disabled' : ''}>Open campaign <span aria-hidden="true">→</span></button>${driveActions}</div><p class="launch-job" data-job="${esc(card.id)}" role="status" hidden></p></article>`;
+      : `<button type="button" class="secondary launch-action" data-refresh="${esc(card.id)}"${syncing ? ' disabled' : ''}>${syncFailed ? 'Finish sync' : 'Refresh'}</button><button type="button" class="text-button launch-action" data-disconnect="${esc(card.id)}">Disconnect</button>`;
+    const openButton = syncing || syncFailed
+      ? `<button type="button" class="primary open-launch" disabled>${syncFailed ? 'Sync interrupted' : 'Syncing snapshot…'}</button>`
+      : `<button type="button" class="primary open-launch" data-open="${esc(card.id)}">Open campaign <span aria-hidden="true">→</span></button>`;
+    return `<article class="launch-card${disconnected ? ' disconnected' : ''}${syncing ? ' syncing' : ''}"><div class="card-top"><img src="/brand/logo.svg" alt="" width="34" height="34"><span class="status-pill launch-readiness ${readiness.tone || 'info'}">${esc(readiness.label)}</span></div><p class="eyebrow">${esc(card.source)}</p><h2>${esc(card.label)}</h2><p class="muted">${details}</p><p class="launch-meta">${esc(card.workspacePath ? 'Local folder' : 'Read-only Drive snapshot')}${card.type === 'google-drive' && !refreshed ? ' · Not refreshed yet' : ''}${esc(refreshed)}</p>${card.sampleMatch ? '<span class="pill">Public demo copy · demo scope by default</span>' : ''}<div class="card-bottom">${openButton}${driveActions}</div><p class="launch-job" data-job="${esc(card.id)}" role="status" hidden></p></article>`;
   }).join('');
+  // While any launch is syncing in the background, keep its card's counts fresh.
+  if (visibleLaunches.some(card => card.status === 'syncing') && !syncPollTimer) {
+    syncPollTimer = setTimeout(async () => {
+      syncPollTimer = null;
+      if (!chooser || requestBusy || activeJob || $('view-chooser').hidden) return;
+      try {chooser = await api('/api/state'); state = chooserState(); renderChooser();} catch { /* retry on the next tick */ }
+    },2000);
+  }
   for (const button of $('launch-cards').querySelectorAll('[data-open]')) button.addEventListener('click',() => void openLaunch(button.dataset.open));
   for (const button of $('launch-cards').querySelectorAll('[data-refresh]')) button.addEventListener('click',() => void refreshDriveLaunch(button.dataset.refresh));
   for (const button of $('launch-cards').querySelectorAll('[data-reconnect]')) button.addEventListener('click',() => void startReconnect(button.dataset.reconnect));
